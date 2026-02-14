@@ -81,5 +81,5 @@ If communication fails:
 
 # ⚙️ ESPHome Configuration
 
-Main config file: 📁 [`wiring/rs485-wiring-diagram.md`](https://github.com/quky/Anenji-12KW-48V-Hybrid-split-phas/blob/main/esphome/esphome.yaml))
+Main config file: 📁 [`esphome/esphome.yaml`](https://github.com/quky/Anenji-12KW-48V-Hybrid-split-phas/blob/main/esphome/esphome.yaml))
 
