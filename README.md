@@ -1,30 +1,86 @@
-# Anenji-12KW-48V-Hybrid-split-phas
-This guide shows the recommended wiring to read/control an Anenji 12kW split-phase inverter via Modbus RTU over RS485 using the Waveshare ESP32-S3 RS485/CAN DIN rail board.
----
+# 🔋 Anenji 12kW Split-Phase Inverter  
+## ESPHome Modbus RS485 Integration for Home Assistant
 
-## What you need
+Professional, open-source integration for the **Anenji 12kW Split-Phase (48V)** inverter using:
 
-- **Anenji 12kW split-phase inverter** (RS485 Modbus capable)
-- **Waveshare ESP32-S3 RS485/CAN DIN rail board**
-- 1× twisted pair cable (shielded recommended) for RS485 A/B
-- 1× ground wire (GND reference)
-- Optional: 120Ω termination resistor (only if needed, see below)
-- Power for the Waveshare board (recommended: **USB-C power brick** or a dedicated 5V supply)
+- 🧠 ESPHome  
+- 🔌 Modbus RTU (RS485)  
+- 📊 Home Assistant Energy Dashboard  
+- 🏠 Full inverter control  
 
----
-
-## Recommended connection (3 wires)
-
-### Connect inverter RS485 → Waveshare RS485
-
-| Inverter RS485 | Waveshare RS485 terminal | Notes |
-|---|---|---|
-| **RS485 A / RS485+ / D+** | **A+ / 485A** | Differential “A/+” line |
-| **RS485 B / RS485- / D-** | **B- / 485B** | Differential “B/−” line |
-| **GND** | **GND** | Common reference (recommended) |
-
-✅ That’s it: **A, B, GND**.
+Designed specifically for:
+> **Anenji 12kW Split-Phase models with RS485 Modbus port**
 
 ---
 
-## Wiring diagram
+# ✨ Features
+
+## 📊 Live Monitoring
+- PV Power (per MPPT + total)
+- Load Power (L1, L2, Total)
+- Grid Import / Export (CT grid-side)
+- Battery Voltage / Current / SOC
+- Battery Charge & Discharge Power
+- Output Voltage & Frequency
+
+## ⚡ Energy Dashboard Compatible
+- PV Energy (daily kWh)
+- Load Energy (daily kWh)
+- Grid Import / Export Energy
+- Battery Charge / Discharge Energy
+
+Fully compatible with:
+> Home Assistant Energy Dashboard
+
+---
+
+## 🎛 Inverter Controls
+
+- ✅ AC Output On / Off
+- ✅ Charging Priority (dropdown)
+- ✅ Load Output Priority (dropdown)
+- ✅ Restart Inverter
+- ✅ Enforce Zero Export (A089 = 0)
+- ✅ Disable Grid Feed-in (A088)
+
+---
+
+# 🧰 Hardware Required
+
+## 1️⃣ Inverter
+- **Anenji 12kW Split-Phase**
+- Must have RS485 Modbus communication port
+
+## 2️⃣ Communication Board
+- **Waveshare ESP32-S3 RS485/CAN DIN Rail**
+
+## 3️⃣ Wiring
+- Twisted pair (A/B)
+- Ground reference wire
+- Optional 120Ω resistor (long runs only)
+
+---
+
+# 🔌 RS485 Wiring
+
+See full wiring guide here:
+
+📁 `wiring/rs485-wiring-diagram.md`
+
+### Basic Connection
+
+| Inverter RS485 | Waveshare RS485 |
+|---------------|----------------|
+| RS485+ (A) | A+ |
+| RS485- (B) | B- |
+| GND | GND |
+
+If communication fails:
+> Swap A and B.
+
+---
+
+# ⚙️ ESPHome Configuration
+
+Main config file:
+
