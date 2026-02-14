@@ -66,6 +66,7 @@ Fully compatible with:
 See full wiring guide here:
 [📁 `wiring/rs485-wiring-diagram.md`]([URL](https://github.com/quky/Anenji-12KW-48V-Hybrid-split-phas/blob/main/wiring/rs485-wiring-diagram.md))
 
+This project is hosted on [GitHub](https://github.com/) for collaboration.
 
 ### Basic Connection
 
