@@ -29,7 +29,9 @@ This guide shows the recommended wiring to read/control an Anenji 12kW split-pha
 
 ## Wiring diagram
 ANENJI 12kW RS485 PORT WAVESHARE ESP32-S3 RS485/CAN (DIN)
-
+| RS485+ (A / D+) ----------------->| A+ (485A) |
+| **RS485 B / RS485- / D-** | **B- / 485B** | Differential “B/−” line |
+| **GND** | **GND** | Common reference (recommended) |
 |RS485+ (A / D+) -----------------> A+ (485A)|
 |RS485- (B / D-) -----------------> B- (485B)|
 |GND -----------------> GND|
