@@ -1,0 +1,17 @@
+type: custom:power-flow-card-plus
+title: Energy Flow
+entities:
+  grid:
+    entity: sensor.anenji_inverter_grid_export_power
+    display_state: one_way
+  solar:
+    entity: sensor.anenji_inverter_pv_total_power
+  home:
+    entity: sensor.anenji_inverter_load_power_total
+  battery:
+    entity: sensor.anenji_inverter_battery_charge_power
+    state_of_charge: sensor.anenji_inverter_battery_soc
+    display_state: two_way
+watt_threshold: 15
+decimals: 0
+clickable_entities: true
