@@ -1,0 +1,33 @@
+
+Tested with:
+- ESPHome 2026.x
+- ESP-IDF framework
+- 9600 baud
+- Modbus address 0x01
+
+---
+
+# 🔐 Zero Export Protection
+
+This project enforces **true zero export** using:
+
+- Register `A089` → Max Grid Feed Power = 0W  
+- Register `A088` → Allow Grid Feed-in = OFF  
+- Auto re-enforcement every 10 minutes  
+- Forced at boot  
+
+⚠ Always verify grid regulations in your region.
+
+---
+
+# 📊 Home Assistant Dashboard
+
+Included:
+- Live Power Gauges
+- Energy Dashboard support
+- Professional Control Panel
+- Restart button
+- Priority dropdowns
+
+Dashboard YAML examples in:
+
