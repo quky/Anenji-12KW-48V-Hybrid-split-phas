@@ -33,6 +33,12 @@ time:
   - platform: homeassistant
     id: ha_time
 
+# ===============================
+# RS485 (Waveshare ESP32-S3 DIN)
+# TX = GPIO17
+# RX = GPIO18
+# EN = GPIO21
+# ===============================
 uart:
   id: uart_rs485
   tx_pin: GPIO17
@@ -52,10 +58,13 @@ modbus_controller:
   - id: inv
     modbus_id: modbus1
     address: 0x01
-    update_interval: 2s
-    command_throttle: 200ms
+    update_interval: 3s
+    command_throttle: 300ms
     setup_priority: -10
 
+# ===============================
+# BUTTONS
+# ===============================
 button:
   - platform: template
     name: "Restart Inverter"
@@ -64,7 +73,11 @@ button:
       - delay: 500ms
       - switch.turn_off: inverter_restart_pulse
 
+# ===============================
+# SENSORS
+# ===============================
 sensor:
+  # -------- BATTERY (V/A/SOC) --------
   - platform: modbus_controller
     modbus_controller_id: inv
     id: batt_v
@@ -74,7 +87,8 @@ sensor:
     value_type: U_WORD
     unit_of_measurement: "V"
     accuracy_decimals: 1
-    filters: [{ multiply: 0.1 }]
+    filters:
+      - multiply: 0.1
 
   - platform: modbus_controller
     modbus_controller_id: inv
@@ -85,48 +99,67 @@ sensor:
     value_type: S_WORD
     unit_of_measurement: "A"
     accuracy_decimals: 1
-    filters: [{ multiply: 0.1 }]
+    filters:
+      - multiply: 0.1
 
   - platform: modbus_controller
     modbus_controller_id: inv
+    id: batt_soc
     name: "Battery SOC"
     address: 0x7532
     register_type: holding
     value_type: U_WORD
     unit_of_measurement: "%"
 
+  # V*A Power (raw)
   - platform: template
-    id: batt_power_w
-    name: "Battery Power (Approx)"
+    id: batt_power_va_w
+    name: "Battery Power (V*A)"
+    update_interval: 2s
     unit_of_measurement: "W"
     accuracy_decimals: 0
     lambda: |-
       if (isnan(id(batt_v).state) || isnan(id(batt_a).state)) return NAN;
       return id(batt_v).state * id(batt_a).state;
 
+  # Signed battery power (match your inverter: discharge shows as negative -> invert V*A)
   - platform: template
-    id: batt_charge_w
-    name: "Battery Charge Power"
+    id: battery_power_signed
+    name: "Battery Power (Signed)"
+    update_interval: 2s
     unit_of_measurement: "W"
     accuracy_decimals: 0
     lambda: |-
-      if (isnan(id(batt_power_w).state)) return NAN;
-      float p = id(batt_power_w).state;
+      if (isnan(id(batt_power_va_w).state)) return NAN;
+      float p = -id(batt_power_va_w).state;   // your sign convention
+      if (fabsf(p) < 80.0f) return 0.0f;      // deadband (adjust 50–150W)
+      return p;
+
+  - platform: template
+    id: battery_charge_power
+    name: "Battery Charge Power"
+    update_interval: 2s
+    unit_of_measurement: "W"
+    accuracy_decimals: 0
+    lambda: |-
+      if (isnan(id(battery_power_signed).state)) return NAN;
+      float p = id(battery_power_signed).state;
       return (p > 0) ? p : 0;
 
   - platform: template
-    id: batt_discharge_w
+    id: battery_discharge_power
     name: "Battery Discharge Power"
+    update_interval: 2s
     unit_of_measurement: "W"
     accuracy_decimals: 0
     lambda: |-
-      if (isnan(id(batt_power_w).state)) return NAN;
-      float p = id(batt_power_w).state;
+      if (isnan(id(battery_power_signed).state)) return NAN;
+      float p = id(battery_power_signed).state;
       return (p < 0) ? (-p) : 0;
 
   - platform: total_daily_energy
     name: "Battery Charge Energy Today"
-    power_id: batt_charge_w
+    power_id: battery_charge_power
     unit_of_measurement: "kWh"
     accuracy_decimals: 2
     method: trapezoid
@@ -135,7 +168,7 @@ sensor:
 
   - platform: total_daily_energy
     name: "Battery Discharge Energy Today"
-    power_id: batt_discharge_w
+    power_id: battery_discharge_power
     unit_of_measurement: "kWh"
     accuracy_decimals: 2
     method: trapezoid
@@ -164,6 +197,7 @@ sensor:
   - platform: template
     id: pv_total
     name: "PV Total Power"
+    update_interval: 2s
     unit_of_measurement: "W"
     accuracy_decimals: 0
     lambda: |-
@@ -189,7 +223,8 @@ sensor:
     value_type: U_WORD
     unit_of_measurement: "V"
     accuracy_decimals: 1
-    filters: [{ multiply: 0.1 }]
+    filters:
+      - multiply: 0.1
 
   - platform: modbus_controller
     modbus_controller_id: inv
@@ -199,7 +234,8 @@ sensor:
     value_type: U_WORD
     unit_of_measurement: "Hz"
     accuracy_decimals: 2
-    filters: [{ multiply: 0.01 }]
+    filters:
+      - multiply: 0.01
 
   - platform: modbus_controller
     modbus_controller_id: inv
@@ -246,7 +282,7 @@ sensor:
     filters:
       - multiply: 0.001
 
-  # -------- GRID (CT) --------
+  # -------- GRID (CT Grid-side) --------
   - platform: modbus_controller
     modbus_controller_id: inv
     id: grid_l1
@@ -266,34 +302,59 @@ sensor:
     unit_of_measurement: "W"
 
   - platform: template
-    id: grid_total
-    name: "Grid Power Total (Signed)"
+    id: grid_power_signed
+    name: "Grid Power (Signed)"
+    update_interval: 2s
     unit_of_measurement: "W"
     accuracy_decimals: 0
     lambda: |-
       if (isnan(id(grid_l1).state) || isnan(id(grid_l2).state)) return NAN;
-      return id(grid_l1).state + id(grid_l2).state;
+      return id(grid_l1).state + id(grid_l2).state; // +import, -export (if your CT supports it)
 
-  # Define these BEFORE anything that references them
   - platform: template
     id: grid_import
     name: "Grid Import Power"
+    update_interval: 2s
     unit_of_measurement: "W"
     accuracy_decimals: 0
     lambda: |-
-      if (isnan(id(grid_total).state)) return NAN;
-      float v = id(grid_total).state;
+      if (isnan(id(grid_power_signed).state)) return NAN;
+      float v = id(grid_power_signed).state;
       return (v > 0) ? v : 0;
 
   - platform: template
     id: grid_export
     name: "Grid Export Power"
+    update_interval: 2s
     unit_of_measurement: "W"
     accuracy_decimals: 0
     lambda: |-
-      if (isnan(id(grid_total).state)) return NAN;
-      float v = id(grid_total).state;
+      if (isnan(id(grid_power_signed).state)) return NAN;
+      float v = id(grid_power_signed).state;
       return (v < 0) ? (-v) : 0;
+
+  # Deadband-filtered (kills tiny grid line)
+  - platform: template
+    id: grid_import_filtered
+    name: "Grid Import Power (Filtered)"
+    update_interval: 2s
+    unit_of_measurement: "W"
+    accuracy_decimals: 0
+    lambda: |-
+      float v = id(grid_import).state;
+      if (isnan(v)) return NAN;
+      return (v < 25.0f) ? 0.0f : v;
+
+  - platform: template
+    id: grid_export_filtered
+    name: "Grid Export Power (Filtered)"
+    update_interval: 2s
+    unit_of_measurement: "W"
+    accuracy_decimals: 0
+    lambda: |-
+      float v = id(grid_export).state;
+      if (isnan(v)) return NAN;
+      return (v < 25.0f) ? 0.0f : v;
 
   - platform: total_daily_energy
     name: "Grid Import Energy Today"
@@ -313,19 +374,164 @@ sensor:
     filters:
       - multiply: 0.001
 
-  - platform: template
-    name: "Self Consumption Power"
-    unit_of_measurement: "W"
+  # -------- FAN (single sensor only) --------
+  # -------- FAN (single sensor only) --------
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fan_duty
+    name: "Fan Duty Cycle"
+    address: 0x757E
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "%"
     accuracy_decimals: 0
-    lambda: |-
-      if (isnan(id(pv_total).state) || isnan(id(grid_export).state)) return NAN;
-      float self_use = id(pv_total).state - id(grid_export).state;
-      if (self_use < 0) self_use = 0;
-      return self_use;
+    filters:
+      - clamp:
+          min_value: 0
+          max_value: 100
 
+
+  # -------- TEMPERATURES (0.1°C) 0x7579..0x757C --------
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: inv_temp_1_c
+    name: "Inverter Temp Point 1 (C)"
+    entity_category: diagnostic
+    internal: true
+    address: 0x7579
+    register_type: holding
+    value_type: S_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: inv_temp_2_c
+    name: "Inverter Temp Point 2 (C)"
+    entity_category: diagnostic
+    internal: true
+    address: 0x757A
+    register_type: holding
+    value_type: S_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: inv_temp_3_c
+    name: "Inverter Temp Point 3 (C)"
+    entity_category: diagnostic
+    internal: true
+    address: 0x757B
+    register_type: holding
+    value_type: S_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: inv_temp_4_c
+    name: "Inverter Temp Point 4 (C)"
+    entity_category: diagnostic
+    internal: true
+    address: 0x757C
+    register_type: holding
+    value_type: S_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+
+  # ---- Convert to °F ----
+  - platform: template
+    id: inverter_temp_1_f
+    name: "Inverter Temp Point 1"
+    unit_of_measurement: "°F"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 5s
+    lambda: |-
+      float c = id(inv_temp_1_c).state;
+      if (isnan(c)) return NAN;
+      float f = (c * 9.0f / 5.0f) + 32.0f;
+      return roundf(f * 10.0f) / 10.0f;
+
+  - platform: template
+    id: inverter_temp_2_f
+    name: "Inverter Temp Point 2"
+    unit_of_measurement: "°F"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 5s
+    lambda: |-
+      float c = id(inv_temp_2_c).state;
+      if (isnan(c)) return NAN;
+      float f = (c * 9.0f / 5.0f) + 32.0f;
+      return roundf(f * 10.0f) / 10.0f;
+
+  - platform: template
+    id: inverter_temp_3_f
+    name: "Inverter Temp Point 3"
+    unit_of_measurement: "°F"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 5s
+    lambda: |-
+      float c = id(inv_temp_3_c).state;
+      if (isnan(c)) return NAN;
+      float f = (c * 9.0f / 5.0f) + 32.0f;
+      return roundf(f * 10.0f) / 10.0f;
+
+  - platform: template
+    id: inverter_temp_4_f
+    name: "Inverter Temp Point 4"
+    unit_of_measurement: "°F"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 5s
+    lambda: |-
+      float c = id(inv_temp_4_c).state;
+      if (isnan(c)) return NAN;
+      float f = (c * 9.0f / 5.0f) + 32.0f;
+      return roundf(f * 10.0f) / 10.0f;
+
+  # ---- Hottest ----
+  - platform: template
+    id: inverter_hottest_temp
+    name: "Inverter Hottest Temperature"
+    unit_of_measurement: "°F"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 5s
+    lambda: |-
+      float t1 = id(inverter_temp_1_f).state;
+      float t2 = id(inverter_temp_2_f).state;
+      float t3 = id(inverter_temp_3_f).state;
+      float t4 = id(inverter_temp_4_f).state;
+
+      float max_temp = t1;
+      if (!isnan(t2) && t2 > max_temp) max_temp = t2;
+      if (!isnan(t3) && t3 > max_temp) max_temp = t3;
+      if (!isnan(t4) && t4 > max_temp) max_temp = t4;
+
+      return max_temp;
+
+
+# ===============================
+# SWITCHES
+# ===============================
 switch:
   - platform: modbus_controller
     modbus_controller_id: inv
+    id: inverter_ac_output
     name: "Inverter AC Output"
     register_type: holding
     address: 0x9C40
@@ -355,7 +561,9 @@ switch:
     address: 0x9C41
     bitmask: 1
 
-
+# ===============================
+# NUMBERS
+# ===============================
 number:
   - platform: modbus_controller
     modbus_controller_id: inv
@@ -369,6 +577,17 @@ number:
     max_value: 3
     step: 1
 
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: load_priority_raw
+    name: "Load Priority Raw"
+    entity_category: diagnostic
+    register_type: holding
+    address: 0xA028
+    value_type: U_WORD
+    min_value: 0
+    max_value: 3
+    step: 1
 
   - platform: modbus_controller
     modbus_controller_id: inv
@@ -381,18 +600,18 @@ number:
     max_value: 15000
     step: 50
 
-  # ✅ ADD THIS
-  - platform: modbus_controller
-    modbus_controller_id: inv
-    id: load_priority_raw
-    name: "Load Priority Raw"
-    entity_category: diagnostic
-    register_type: holding
-    address: 0xA028
-    value_type: U_WORD
-    min_value: 0
-    max_value: 3
-    step: 1
+# ===============================
+# SELECTS (Dropdowns)
+# ===============================
+globals:
+  - id: chgprio_val
+    type: uint16_t
+    restore_value: no
+    initial_value: "0"
+  - id: loadprio_val
+    type: uint16_t
+    restore_value: no
+    initial_value: "0"
 
 select:
   - platform: template
@@ -415,7 +634,6 @@ select:
           id: charging_priority_raw
           value: !lambda "return (float) id(chgprio_val);"
 
-  # ✅ ADD THIS (Load / Output Priority)
   - platform: template
     name: "Inverter Load Priority"
     optimistic: true
@@ -435,20 +653,11 @@ select:
       - number.set:
           id: load_priority_raw
           value: !lambda "return (float) id(loadprio_val);"
-globals:
-  - id: chgprio_val
-    type: uint16_t
-    restore_value: no
-    initial_value: "0"
 
-  # ✅ ADD THIS
-  - id: loadprio_val
-    type: uint16_t
-    restore_value: no
-    initial_value: "0"
-    
+# ===============================
+# PERIODIC ENFORCEMENT
+# ===============================
 interval:
-  # Re-enforce every 10 minutes (very light touch)
   - interval: 10min
     then:
       - if:
@@ -458,3 +667,4 @@ interval:
             - number.set:
                 id: max_grid_feed_power
                 value: 0
+            - switch.turn_off: allow_grid_feed_in
