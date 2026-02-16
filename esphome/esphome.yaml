@@ -23,10 +23,9 @@ esp32:
     type: esp-idf
 
 logger:
-  baud_rate: 0
-  level: INFO
+  level: DEBUG
   logs:
-    modbus_controller: WARN
+    modbus_controller: DEBUG
     modbus: WARN
 
 api:
@@ -55,21 +54,21 @@ uart:
   baud_rate: 9600
   stop_bits: 1
   parity: NONE
-  rx_buffer_size: 256
+  rx_buffer_size: 512
 
 modbus:
   id: modbus1
   uart_id: uart_rs485
   flow_control_pin: GPIO21
   # more conservative timing to reduce CRC errors
-  send_wait_time: 500ms
+  send_wait_time: 750ms
 
 modbus_controller:
   - id: inv
     modbus_id: modbus1
     address: 0x01
     update_interval: 6s
-    command_throttle: 750ms
+    command_throttle: 1000ms
     setup_priority: -10
 
 # ===============================
@@ -114,16 +113,16 @@ sensor:
     address: 0x7530
     register_type: holding
     value_type: U_WORD
+    register_count: 3
+    offset: 0
     unit_of_measurement: "V"
     accuracy_decimals: 1
     filters:
       - multiply: 0.1
-      # sanity clamp: 40V..70V typical for 48V pack
       - clamp:
           min_value: 40.0
           max_value: 70.0
       - lambda: |-
-          // mark "modbus ok" when we see sane data
           id(last_modbus_ok_ms) = millis();
           return x;
 
@@ -131,14 +130,14 @@ sensor:
     modbus_controller_id: inv
     id: batt_a
     name: "Battery Current"
-    address: 0x7531
+    address: 0x7530
     register_type: holding
     value_type: S_WORD
+    offset: 2      # 0x7531
     unit_of_measurement: "A"
     accuracy_decimals: 1
     filters:
       - multiply: 0.1
-      # reject absurd CRC-glitch currents
       - lambda: |-
           if (isnan(x)) return x;
           if (x < -300.0f || x > 300.0f) return NAN;
@@ -148,18 +147,19 @@ sensor:
     modbus_controller_id: inv
     id: batt_soc
     name: "Battery SOC"
-    address: 0x7532
+    address: 0x7530
     register_type: holding
     value_type: U_WORD
+    offset: 4      # 0x7532
     unit_of_measurement: "%"
     accuracy_decimals: 0
     filters:
       - lambda: |-
           if (isnan(x)) return x;
-          // CRC glitches often show 65000+, force unknown instead
           if (x < 0.0f || x > 100.0f) return NAN;
           id(last_modbus_ok_ms) = millis();
           return x;
+
 
   # V*A Power (raw)
   - platform: template
@@ -314,6 +314,8 @@ sensor:
     address: 0x7548
     register_type: holding
     value_type: U_WORD
+    register_count: 23   # 0x7548..0x755E inclusive
+    offset: 0
     unit_of_measurement: "V"
     accuracy_decimals: 1
     filters:
@@ -323,9 +325,10 @@ sensor:
     modbus_controller_id: inv
     id: out_hz
     name: "Output Frequency"
-    address: 0x754A
+    address: 0x7548
     register_type: holding
     value_type: U_WORD
+    offset: 4            # 0x754A
     unit_of_measurement: "Hz"
     accuracy_decimals: 2
     filters:
@@ -335,19 +338,22 @@ sensor:
     modbus_controller_id: inv
     id: load_l1
     name: "Load Power L1 (Output)"
-    address: 0x754C
+    address: 0x7548
     register_type: holding
     value_type: S_WORD
+    offset: 8            # 0x754C
     unit_of_measurement: "W"
 
   - platform: modbus_controller
     modbus_controller_id: inv
     id: load_total_out
     name: "Load Power Total (Output)"
-    address: 0x755E
+    address: 0x7548
     register_type: holding
     value_type: S_WORD
+    offset: 44           # 0x755E (22 regs * 2 bytes)
     unit_of_measurement: "W"
+
 
   - platform: template
     id: load_l2
@@ -486,16 +492,16 @@ sensor:
     filters:
       - multiply: 0.001
 
-  # -------- FAN (757E Fan Duty, %) --------
-  - platform: modbus_controller
-    modbus_controller_id: inv
-    id: fan_duty
-    name: "Fan Duty Cycle"
-    address: 0x757E
-    register_type: holding
-    value_type: U_WORD
+##################virtual duty
+  - platform: template
+    name: "Fan Estimated Duty"
     unit_of_measurement: "%"
-
+    lambda: |-
+      float t = id(inv_temp_3_c).state;
+      if (t < 35) return 0;
+      if (t < 40) return 40;
+      if (t < 45) return 70;
+      return 100;
 
   # -------- TEMPERATURES (0.1°C) 0x7579..0x757C --------
   - platform: modbus_controller
@@ -504,35 +510,41 @@ sensor:
     address: 0x7579
     register_type: holding
     value_type: S_WORD
+    register_count: 6
+    offset: 0
     filters:
       - multiply: 0.1
 
   - platform: modbus_controller
     modbus_controller_id: inv
     id: inv_temp_2_c
-    address: 0x757A
+    address: 0x7579
     register_type: holding
     value_type: S_WORD
+    offset: 2
     filters:
       - multiply: 0.1
 
   - platform: modbus_controller
     modbus_controller_id: inv
     id: inv_temp_3_c
-    address: 0x757B
+    address: 0x7579
     register_type: holding
     value_type: S_WORD
+    offset: 4
     filters:
       - multiply: 0.1
 
   - platform: modbus_controller
     modbus_controller_id: inv
     id: inv_temp_4_c
-    address: 0x757C
+    address: 0x7579
     register_type: holding
     value_type: S_WORD
+    offset: 6
     filters:
       - multiply: 0.1
+
 
   # ---- Convert to °F ----
   - platform: template
@@ -627,16 +639,15 @@ sensor:
 # BINARY SENSORS
 # ===============================
 binary_sensor:
-  - platform: status
-    name: "Anenji Inverter ESP Online"
-
   - platform: template
     id: inverter_modbus_ok
     name: "Anenji Inverter Modbus OK"
     device_class: connectivity
     lambda: |-
+      if (id(last_modbus_ok_ms) == 0) return false;
       const uint32_t age = millis() - id(last_modbus_ok_ms);
-      return age < 20000;  // 20s freshness window
+      return age < 20000;
+
 
 # ===============================
 # PERIODIC ENFORCEMENT
@@ -664,21 +675,7 @@ switch:
     register_type: holding
     address: 0x9C40
     bitmask: 1
-
-  - platform: modbus_controller
-    modbus_controller_id: inv
-    id: allow_grid_feed_in
-    name: "Allow Grid Feed-in"
-    entity_category: diagnostic
-    register_type: holding
-    address: 0xA088
-    bitmask: 1
-
-  - platform: template
-    name: "Enforce Zero Export"
-    id: enforce_zero_export
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
+    skip_updates: 200
 
   - platform: modbus_controller
     modbus_controller_id: inv
@@ -688,6 +685,24 @@ switch:
     register_type: holding
     address: 0x9C41
     bitmask: 1
+    skip_updates: 200
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: allow_grid_feed_in
+    name: "Allow Grid Feed-in"
+    entity_category: diagnostic
+    register_type: holding
+    address: 0xA088
+    bitmask: 1
+    skip_updates: 30
+
+  - platform: template
+    name: "Enforce Zero Export"
+    id: enforce_zero_export
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
 
 # ===============================
 # NUMBERS
@@ -704,6 +719,7 @@ number:
     min_value: 0
     max_value: 3
     step: 1
+    skip_updates: 100
 
   - platform: modbus_controller
     modbus_controller_id: inv
@@ -716,6 +732,7 @@ number:
     min_value: 0
     max_value: 3
     step: 1
+    skip_updates: 100
 
   - platform: modbus_controller
     modbus_controller_id: inv
@@ -727,6 +744,7 @@ number:
     min_value: 0
     max_value: 15000
     step: 50
+    skip_updates: 30
 
 # ===============================
 # SELECTS (Dropdowns)
