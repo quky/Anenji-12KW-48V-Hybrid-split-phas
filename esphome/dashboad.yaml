@@ -1,0 +1,1087 @@
+views:
+  - type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: New section
+          - type: vertical-stack
+            cards:
+              - type: vertical-stack
+                cards:
+                  - type: custom:button-card
+                    name: anenji-flow-ui
+                    show_icon: false
+                    show_name: false
+                    show_state: false
+                    tap_action:
+                      action: none
+                    variables:
+                      DEBUG_HIT: false
+                      HIT_LEFT: 22
+                      HIT_RIGHT: 78
+                      HIT_TOP: 36
+                      HIT_BOTTOM: 84
+                      HIT_SIZE: 96
+                      DC_HIT_X: 50
+                      DC_HIT_Y: 61
+                      DC_HIT_SIZE: 110
+                      link_x: 93
+                      link_y: 7
+                      link_size: 56
+                    styles:
+                      card:
+                        - padding: '0'
+                        - margin: '0'
+                        - border-radius: 28px
+                        - overflow: hidden
+                        - position: relative
+                        - width: 100%
+                        - max-width: 420px
+                        - height: min(420px, 92vw)
+                        - aspect-ratio: 1 / 1
+                        - background: none
+                        - background-color: rgba(7,10,12,0.96)
+                        - background-image: >
+                            radial-gradient(circle at 50% 40%,
+                            rgba(160,220,230,0.35) 0%, rgba(10,16,18,0.92) 55%,
+                            rgba(7,10,12,0.96) 100%)
+                        - background-repeat: no-repeat
+                        - background-size: cover
+                        - '--ha-card-background': rgba(0,0,0,0)
+                        - '--card-background-color': rgba(0,0,0,0)
+                        - box-shadow: 0 10px 24px rgba(0,0,0,0.35)
+                      custom_fields:
+                        ui:
+                          - position: absolute
+                          - inset: '0'
+                          - width: 100%
+                          - height: 100%
+                          - z-index: '1'
+                          - pointer-events: none
+                        pv_hit:
+                          - position: absolute
+                          - left: '[[[ return variables.HIT_LEFT + ''%''; ]]]'
+                          - top: '[[[ return variables.HIT_TOP + ''%''; ]]]'
+                          - transform: translate(-50%, -50%)
+                          - z-index: '50'
+                          - pointer-events: auto
+                        grid_hit:
+                          - position: absolute
+                          - left: '[[[ return variables.HIT_RIGHT + ''%''; ]]]'
+                          - top: '[[[ return variables.HIT_TOP + ''%''; ]]]'
+                          - transform: translate(-50%, -50%)
+                          - z-index: '50'
+                          - pointer-events: auto
+                        bat_hit:
+                          - position: absolute
+                          - left: '[[[ return variables.HIT_LEFT + ''%''; ]]]'
+                          - top: '[[[ return variables.HIT_BOTTOM + ''%''; ]]]'
+                          - transform: translate(-50%, -50%)
+                          - z-index: '50'
+                          - pointer-events: auto
+                        home_hit:
+                          - position: absolute
+                          - left: '[[[ return variables.HIT_RIGHT + ''%''; ]]]'
+                          - top: '[[[ return variables.HIT_BOTTOM + ''%''; ]]]'
+                          - transform: translate(-50%, -50%)
+                          - z-index: '50'
+                          - pointer-events: auto
+                        dc_hit:
+                          - position: absolute
+                          - left: '[[[ return variables.DC_HIT_X + ''%''; ]]]'
+                          - top: '[[[ return variables.DC_HIT_Y + ''%''; ]]]'
+                          - transform: translate(-50%, -50%)
+                          - z-index: '55'
+                          - pointer-events: auto
+                        link_hit:
+                          - position: absolute
+                          - left: '[[[ return variables.link_x + ''%''; ]]]'
+                          - top: '[[[ return variables.link_y + ''%''; ]]]'
+                          - transform: translate(-50%, -50%)
+                          - z-index: '60'
+                          - pointer-events: auto
+                    custom_fields:
+                      ui: |
+                        [[[
+                          const DEBUG_HIT = variables.DEBUG_HIT === true;
+
+                          if (!hass || !hass.states) {
+                            return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.65);font-weight:700;">Loading…</div>`;
+                          }
+
+                          // helpers
+                          const st  = (eid) => hass.states[eid]?.state;
+                          const num = (eid) => {
+                            const v = parseFloat(st(eid));
+                            return Number.isFinite(v) ? v : 0;
+                          };
+
+                          // alarm
+                          const derActiveRaw = st('binary_sensor.anenji_inverter_der_alarm_active') ?? 'off';
+                          const isAlarm =
+                            (String(derActiveRaw).toLowerCase() === 'on') ||
+                            (String(derActiveRaw).toLowerCase() === 'true') ||
+                            (String(derActiveRaw) === '1');
+
+                          // entities
+                          const pvP   = num('sensor.anenji_inverter_pv1_power');
+                          const pvV   = num('sensor.anenji_inverter_pv1_voltage');
+
+                          const battP = num('sensor.anenji_inverter_battery_power_signed');
+                          const battV = num('sensor.anenji_inverter_battery_voltage');
+                          const soc   = num('sensor.anenji_inverter_battery_soc');
+
+                          const gridIn  = num('sensor.anenji_inverter_grid_import_power_filtered');
+                          const gridOut = num('sensor.anenji_inverter_grid_export_power_filtered');
+
+                          const homeP = num('sensor.anenji_inverter_load_power_total_output');
+
+                          // AC voltage (Shelly)
+                          const acV = num('sensor.shellyem_c4d8d500468f_channel_1_voltage');
+
+                          // signed grid power display (negative export)
+                          const gridP = (gridOut > gridIn) ? -gridOut : gridIn;
+
+                          // thresholds
+                          const TH = 25;
+                          const GRID_TH = 50;
+
+                          const showPV   = pvP > TH;
+                          const showHome = Math.abs(homeP) > TH;
+                          const showBat  = Math.abs(battP) > TH;
+                          const showGrid = Math.max(gridIn, gridOut) > GRID_TH;
+
+                          const batDir  = battP >= 0 ? 'charge' : 'discharge';
+                          const gridDir = (gridOut > GRID_TH && gridOut >= gridIn) ? 'export' : 'import';
+
+                          // formatters
+                          const fmtV = (v) => `${(Number.isFinite(v) ? v.toFixed(1) : 0)} V`;
+                          const fmtW = (w) => `${Math.round(Number.isFinite(w) ? w : 0)} W`;
+
+                          // colors
+                          const C_PV   = '#f5a623';
+                          const C_GRID = '#4da3ff';
+                          const C_BAT  = '#ff4ea1';
+                          const C_HOME = '#34d3c6';
+
+                          const ALARM_C = '#ff3b30';
+                          const OK_C    = 'rgba(255,255,255,0.70)';
+
+                          const linkColor = isAlarm ? ALARM_C : OK_C;
+                          const dcStroke  = isAlarm ? ALARM_C : '#2aa7c7';
+
+                          // soc gradient
+                          const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
+                          const hexToRgb = (hex)=>{ const h=hex.replace('#',''); return {r:parseInt(h.slice(0,2),16),g:parseInt(h.slice(2,4),16),b:parseInt(h.slice(4,6),16)}; };
+                          const rgbToHex = ({r,g,b})=>`#${[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('')}`;
+                          const lerp = (a,b,t)=>a+(b-a)*t;
+                          const lerpColor=(c1,c2,t)=>{ const A=hexToRgb(c1),B=hexToRgb(c2); return rgbToHex({r:Math.round(lerp(A.r,B.r,t)),g:Math.round(lerp(A.g,B.g,t)),b:Math.round(lerp(A.b,B.b,t))}); };
+
+                          const SOC = clamp(soc,0,100);
+                          const socColor = (SOC<=50) ? lerpColor('#ff3b30','#ffd60a',SOC/50) : lerpColor('#ffd60a','#34c759',(SOC-50)/50);
+
+                          // layout (SVG coordinates)
+                          const SHIFT_Y = 6;
+
+                          const X_L = 22;
+                          const X_R = 78;
+                          const Y_T = 30;
+                          const Y_B = 78;
+                          const X_C = 50;
+                          const Y_C = 55;
+
+                          const R_NODE = 10.6;
+                          const R_DC   = 14.0;
+
+                          // curves
+                          const PV_FWD   = "M 22 30 C 34 38, 40 46, 46 52";
+                          const GRID_IN  = "M 78 30 C 66 38, 60 46, 54 52";
+                          const GRID_OUT = "M 54 52 C 60 46, 66 38, 78 30";
+                          const BAT_DIS  = "M 22 78 C 34 70, 40 62, 46 58";
+                          const BAT_CHG  = "M 46 58 C 40 62, 34 70, 22 78";
+                          const HOME_FWD = "M 54 58 C 60 62, 66 70, 78 78";
+
+                          const gridPath = (gridDir === 'import') ? GRID_IN : GRID_OUT;
+                          const batPath  = (batDir === 'charge') ? BAT_CHG : BAT_DIS;
+
+                          // channels
+                          const channel = (pathD, color, visible, active) => {
+                            if (!visible) return '';
+                            const base = `rgba(255,255,255,0.06)`;
+                            const hi   = active ? color : `rgba(255,255,255,0.08)`;
+                            const hiOp = active ? 0.22 : 0.09;
+                            return `
+                              <path d="${pathD}" fill="none" stroke="${base}" stroke-width="6.0" stroke-linecap="round" opacity="0.20" vector-effect="non-scaling-stroke"/>
+                              <path d="${pathD}" fill="none" stroke="${hi}"   stroke-width="2.8" stroke-linecap="round" opacity="${hiOp}" vector-effect="non-scaling-stroke"/>
+                            `;
+                          };
+
+                          // flow strokes
+                          const flowStroke = (pathD, color, visible, dir="fwd", speed="2.2s") => {
+                            if (!visible) return '';
+                            const anim = dir === "rev" ? "dashRev" : "dashFwd";
+                            return `
+                              <path d="${pathD}"
+                                    fill="none"
+                                    stroke="${color}"
+                                    stroke-width="3.2"
+                                    stroke-linecap="round"
+                                    opacity="0.60"
+                                    stroke-dasharray="2 7"
+                                    vector-effect="non-scaling-stroke"
+                                    style="animation:${anim} ${speed} linear infinite;"/>
+                            `;
+                          };
+
+                          const glowFilterId = "glow";
+                          const powerStyle = (active, color, filterId=null) => `
+                            fill:${active ? color : "rgba(255,255,255,0.92)"};
+                            font-weight:900;
+                            ${active && filterId ? `filter:url(#${filterId});` : ``}
+                          `;
+
+                          const ICON_SCALE = 0.85;
+                          const SOC_IN_STYLE = `fill:${socColor};font-size:5.2px;font-weight:1000;`;
+
+                          // icons
+                          const iconPV = (cx, cy, active) => `
+                            <g transform="translate(${cx} ${cy}) scale(${ICON_SCALE})"
+                               opacity="0.95"
+                               style="${active ? 'animation:pulseSoft 3.6s ease-in-out infinite;' : ''}">
+                              <rect x="-8.5" y="-6" width="17" height="12" rx="2.2"
+                                    fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.40)" stroke-width="0.9"/>
+                              <line x1="-8.5" y1="-2" x2="8.5" y2="-2" stroke="rgba(255,255,255,0.38)" stroke-width="0.8"/>
+                              <line x1="-8.5" y1="2"  x2="8.5" y2="2"  stroke="rgba(255,255,255,0.38)" stroke-width="0.8"/>
+                              <line x1="-2.8" y1="-6" x2="-2.8" y2="6" stroke="rgba(255,255,255,0.38)" stroke-width="0.8"/>
+                              <line x1="2.8"  y1="-6" x2="2.8"  y2="6" stroke="rgba(255,255,255,0.38)" stroke-width="0.8"/>
+                            </g>
+                          `;
+
+                          const iconGrid = (cx, cy) => `
+                            <g transform="translate(${cx} ${cy}) scale(${ICON_SCALE})" opacity="0.95">
+                              <polygon points="0,-8 4,-1 2,-1 6,8 0,2 -6,8 -2,-1 -4,-1" fill="rgba(255,255,255,0.42)"/>
+                              <line x1="-8" y1="8.2" x2="8" y2="8.2" stroke="rgba(255,255,255,0.40)" stroke-width="1"/>
+                            </g>
+                          `;
+
+                          const iconBattery = (cx, cy) => {
+                            const yTop=-7.0, yBot=7.3, h=(yBot-yTop);
+                            const fillH = h*(SOC/100);
+                            const fillY = yBot - fillH;
+                            return `
+                              <g transform="translate(${cx} ${cy}) scale(${ICON_SCALE})" opacity="0.95">
+                                <rect x="-7.2" y="-9" width="14.4" height="18" rx="2.4"
+                                      fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.42)" stroke-width="0.9"/>
+                                <rect x="-2.8" y="-11" width="5.6" height="2.6" rx="1.0" fill="rgba(255,255,255,0.42)"/>
+                                <clipPath id="batClip"><rect x="-5.9" y="${yTop}" width="11.8" height="${h}" rx="1.8"/></clipPath>
+                                <g clip-path="url(#batClip)">
+                                  <rect x="-5.9" y="${fillY}" width="11.8" height="${fillH}" rx="1.8"
+                                        fill="${socColor}" opacity="0.55"
+                                        style="${showBat ? 'animation:pulseFill 3.2s ease-in-out infinite;' : ''}"></rect>
+                                </g>
+                                <text x="0" y="2.0" text-anchor="middle" style="${SOC_IN_STYLE}">${Math.round(SOC)}%</text>
+                              </g>
+                            `;
+                          };
+
+                          const iconHome = (cx, cy) => `
+                            <g transform="translate(${cx} ${cy}) scale(${ICON_SCALE})" opacity="0.95">
+                              <polygon points="-7,1 0,-8 7,1" fill="rgba(255,255,255,0.22)" stroke="rgba(255,255,255,0.42)" stroke-width="0.9"/>
+                              <rect x="-6.5" y="1" width="13" height="7.5" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.42)" stroke-width="0.9"/>
+                              <rect x="-2.0" y="3.5" width="4.0" height="5.0" fill="rgba(255,255,255,0.35)"/>
+                            </g>
+                          `;
+
+                          // text blocks
+                          const TOP_DROP = -2;
+                          const BOT_LIFT = 2;
+                          const topAnchor = (yCircle, dy=0) => (yCircle - R_NODE - 13 + dy);
+
+                          const X_PV_TX   = X_L - 5;
+                          const X_GRID_TX = X_R + 5;
+                          const X_BAT_TX  = X_L - 5;
+                          const X_HOME_TX = X_R + 5;
+
+                          const block2 = (x, yCircle, vStr, pStr, active, color, dy=0, filterId=null) => {
+                            const y0 = topAnchor(yCircle, dy);
+                            return `
+                              <text x="${x}" y="${y0+6}"  text-anchor="middle" style="fill:rgba(255,255,255,0.66);font-size:4.8px;font-weight:900;">${vStr}</text>
+                              <text x="${x}" y="${y0+12}" text-anchor="middle" style="${powerStyle(active, color, filterId)}font-size:5.0px;font-weight:900;">${pStr}</text>
+                            `;
+                          };
+
+                          const blockBattery = (x, yCircle) => {
+                            const y0 = topAnchor(yCircle, -BOT_LIFT);
+                            return `
+                              <text x="${x}" y="${y0+6}"  text-anchor="middle" style="fill:rgba(255,255,255,0.66);font-size:4.8px;font-weight:900;">${fmtV(battV)}</text>
+                              <text x="${x}" y="${y0+12}" text-anchor="middle" style="${powerStyle(showBat, C_BAT, glowFilterId)}font-size:5.0px;font-weight:900;">${fmtW(battP)}</text>
+                            `;
+                          };
+
+                          // top-right link icon
+                          const SAFE_MARGIN_X = 10;
+                          const SAFE_MARGIN_Y = 5.5;
+                          const LINK_X = 100 - SAFE_MARGIN_X;
+                          const LINK_Y = SAFE_MARGIN_Y;
+
+                          const linkIcon = () => `
+                            <g transform="translate(${LINK_X} ${LINK_Y})" opacity="0.95" style="${isAlarm ? 'animation:pulseAlarm 1.2s ease-in-out infinite;' : ''}">
+                              <circle cx="0" cy="0" r="3.1" fill="rgba(0,0,0,0.25)" stroke="${linkColor}" stroke-width="0.8"/>
+                              <path d="M -1.5 0.2 c 0.0 -0.9 0.6 -1.5 1.5 -1.5 h 0.7 c 0.9 0 1.5 0.6 1.5 1.5 c 0.0 0.9 -0.6 1.5 -1.5 1.5 h -0.2"
+                                    fill="none" stroke="${linkColor}" stroke-width="0.7" stroke-linecap="round"/>
+                              <path d="M 1.5 -0.2 c 0.0 0.9 -0.6 1.5 -1.5 1.5 h -0.7 c -0.9 0 -1.5 -0.6 -1.5 -1.5 c 0.0 -0.9 0.6 -1.5 1.5 -1.5 h 0.2"
+                                    fill="none" stroke="${linkColor}" stroke-width="0.7" stroke-linecap="round"/>
+                            </g>
+                          `;
+
+                          const debugDots = DEBUG_HIT ? `
+                            <circle cx="22" cy="${30+SHIFT_Y}" r="7" fill="rgba(255,0,0,0.65)"/>
+                            <circle cx="78" cy="${30+SHIFT_Y}" r="7" fill="rgba(255,0,0,0.65)"/>
+                            <circle cx="22" cy="${78+SHIFT_Y}" r="7" fill="rgba(255,0,0,0.65)"/>
+                            <circle cx="78" cy="${78+SHIFT_Y}" r="7" fill="rgba(255,0,0,0.65)"/>
+                            <circle cx="${X_C}" cy="${Y_C+SHIFT_Y}" r="9" fill="rgba(255,0,0,0.65)"/>
+                          ` : '';
+
+                          const gridFlowDir = (gridDir === "import") ? "fwd" : "rev";
+                          const batFlowDir  = (batDir  === "charge") ? "rev" : "fwd";
+
+                          return `
+                            <div style="width:100%;height:100%;">
+                              <svg xmlns="http://www.w3.org/2000/svg"
+                                   viewBox="0 0 100 100"
+                                   preserveAspectRatio="xMidYMid meet"
+                                   style="width:100%;height:100%;display:block;shape-rendering:geometricPrecision;text-rendering:geometricPrecision;">
+                                <defs>
+                                  <filter id="${glowFilterId}" x="-60%" y="-60%" width="220%" height="220%">
+                                    <feGaussianBlur stdDeviation="1.2" result="blur"/>
+                                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                                  </filter>
+                                  <style>
+                                    @keyframes dashFwd { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -24; } }
+                                    @keyframes dashRev { from { stroke-dashoffset: 0; } to { stroke-dashoffset:  24; } }
+                                    @keyframes pulseSoft { 0%,100% { opacity: .60; } 50% { opacity: .95; } }
+                                    @keyframes pulseFill { 0%,100% { opacity: .45; } 50% { opacity: .80; } }
+                                    @keyframes pulseAlarm { 0%,100% { opacity: .40; } 50% { opacity: 1.0; } }
+                                  </style>
+                                </defs>
+
+                                ${linkIcon()}
+                                ${debugDots}
+
+                                <g transform="translate(0 ${SHIFT_Y})">
+                                  ${channel(PV_FWD,   C_PV,   true,     showPV)}
+                                  ${channel(gridPath, C_GRID, showGrid, showGrid)}
+                                  ${channel(batPath,  C_BAT,  true,     showBat)}
+                                  ${channel(HOME_FWD, C_HOME, true,     showHome)}
+
+                                  ${flowStroke(PV_FWD,   C_PV,   showPV,   "fwd", "3.6s")}
+                                  ${flowStroke(gridPath, C_GRID, showGrid, gridFlowDir, "2.8s")}
+                                  ${flowStroke(batPath,  C_BAT,  showBat,  batFlowDir,  "2.2s")}
+                                  ${flowStroke(HOME_FWD, C_HOME, showHome, "fwd", "2.4s")}
+
+                                  <circle cx="${X_C}" cy="${Y_C}" r="${R_DC}" fill="#0d3c50" stroke="${dcStroke}" stroke-width="1.2"/>
+                                  <text x="${X_C}" y="${Y_C-1}" text-anchor="middle" fill="white" font-size="6.2" font-weight="800">DC/AC</text>
+                                  <text x="${X_C}" y="${Y_C+6}" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="5" font-weight="700">~ ~</text>
+
+                                  <circle cx="${X_L}" cy="${Y_T}" r="${R_NODE}" fill="#0d0f14" stroke="${C_PV}" stroke-width="2"/>
+                                  ${iconPV(X_L, Y_T, showPV)}
+                                  ${block2(X_PV_TX, Y_T, fmtV(pvV), fmtW(pvP), showPV, C_PV, TOP_DROP, glowFilterId)}
+
+                                  <circle cx="${X_R}" cy="${Y_T}" r="${R_NODE}" fill="#0d0f14" stroke="${C_GRID}" stroke-width="2"/>
+                                  ${iconGrid(X_R, Y_T)}
+                                  ${block2(X_GRID_TX, Y_T, fmtV(acV), fmtW(Math.abs(gridP)), showGrid, C_GRID, TOP_DROP, glowFilterId)}
+
+                                  <circle cx="${X_L}" cy="${Y_B}" r="${R_NODE}" fill="#0d0f14" stroke="${C_BAT}" stroke-width="2"/>
+                                  ${iconBattery(X_L, Y_B)}
+                                  ${blockBattery(X_BAT_TX, Y_B)}
+
+                                  <circle cx="${X_R}" cy="${Y_B}" r="${R_NODE}" fill="#0d0f14" stroke="${C_HOME}" stroke-width="2"/>
+                                  ${iconHome(X_R, Y_B)}
+                                  ${block2(X_HOME_TX, Y_B, fmtV(acV), fmtW(homeP), showHome, C_HOME, -BOT_LIFT, glowFilterId)}
+                                </g>
+                              </svg>
+                            </div>
+                          `;
+                        ]]]
+                      pv_hit:
+                        card:
+                          type: custom:button-card
+                          show_name: false
+                          show_icon: false
+                          show_state: false
+                          styles:
+                            card:
+                              - width: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
+                              - height: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
+                              - border-radius: 999px
+                              - box-shadow: none
+                              - border: none
+                              - padding: '0'
+                              - margin: '0'
+                              - background: >
+                                  [[[ return variables.DEBUG_HIT ?
+                                  "rgba(255,0,0,0.55)" : "transparent"; ]]]
+                              - opacity: >
+                                  [[[ return variables.DEBUG_HIT ? 1 : 0.001;
+                                  ]]]
+                              - '--mdc-ripple-color': transparent
+                              - '--mdc-ripple-press-opacity': '0'
+                          tap_action:
+                            action: navigate
+                            navigation_path: '#pv'
+                      bat_hit:
+                        card:
+                          type: custom:button-card
+                          show_name: false
+                          show_icon: false
+                          show_state: false
+                          styles:
+                            card:
+                              - width: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
+                              - height: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
+                              - border-radius: 999px
+                              - box-shadow: none
+                              - border: none
+                              - padding: '0'
+                              - margin: '0'
+                              - background: >
+                                  [[[ return variables.DEBUG_HIT ?
+                                  "rgba(255,0,0,0.55)" : "transparent"; ]]]
+                              - opacity: >
+                                  [[[ return variables.DEBUG_HIT ? 1 : 0.001;
+                                  ]]]
+                              - '--mdc-ripple-color': transparent
+                              - '--mdc-ripple-press-opacity': '0'
+                          tap_action:
+                            action: navigate
+                            navigation_path: '#battery'
+                      grid_hit:
+                        card:
+                          type: custom:button-card
+                          show_name: false
+                          show_icon: false
+                          show_state: false
+                          styles:
+                            card:
+                              - width: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
+                              - height: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
+                              - border-radius: 999px
+                              - box-shadow: none
+                              - border: none
+                              - padding: '0'
+                              - margin: '0'
+                              - background: >
+                                  [[[ return variables.DEBUG_HIT ?
+                                  "rgba(255,0,0,0.55)" : "transparent"; ]]]
+                              - opacity: >
+                                  [[[ return variables.DEBUG_HIT ? 1 : 0.001;
+                                  ]]]
+                              - '--mdc-ripple-color': transparent
+                              - '--mdc-ripple-press-opacity': '0'
+                          tap_action:
+                            action: navigate
+                            navigation_path: '#grid'
+                      home_hit:
+                        card:
+                          type: custom:button-card
+                          show_name: false
+                          show_icon: false
+                          show_state: false
+                          styles:
+                            card:
+                              - width: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
+                              - height: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
+                              - border-radius: 999px
+                              - box-shadow: none
+                              - border: none
+                              - padding: '0'
+                              - margin: '0'
+                              - background: >
+                                  [[[ return variables.DEBUG_HIT ?
+                                  "rgba(255,0,0,0.55)" : "transparent"; ]]]
+                              - opacity: >
+                                  [[[ return variables.DEBUG_HIT ? 1 : 0.001;
+                                  ]]]
+                              - '--mdc-ripple-color': transparent
+                              - '--mdc-ripple-press-opacity': '0'
+                          tap_action:
+                            action: navigate
+                            navigation_path: '#home'
+                      dc_hit:
+                        card:
+                          type: custom:button-card
+                          show_name: false
+                          show_icon: false
+                          show_state: false
+                          styles:
+                            card:
+                              - width: '[[[ return variables.DC_HIT_SIZE + ''px''; ]]]'
+                              - height: '[[[ return variables.DC_HIT_SIZE + ''px''; ]]]'
+                              - border-radius: 999px
+                              - box-shadow: none
+                              - border: none
+                              - padding: '0'
+                              - margin: '0'
+                              - background: >
+                                  [[[ return variables.DEBUG_HIT ?
+                                  "rgba(255,0,0,0.55)" : "transparent"; ]]]
+                              - opacity: >
+                                  [[[ return variables.DEBUG_HIT ? 1 : 0.001;
+                                  ]]]
+                              - '--mdc-ripple-color': transparent
+                              - '--mdc-ripple-press-opacity': '0'
+                          tap_action:
+                            action: navigate
+                            navigation_path: '#dcac'
+                      link_hit:
+                        card:
+                          type: custom:button-card
+                          show_name: false
+                          show_icon: false
+                          show_state: false
+                          styles:
+                            card:
+                              - width: '[[[ return variables.link_size + ''px''; ]]]'
+                              - height: '[[[ return variables.link_size + ''px''; ]]]'
+                              - border-radius: 999px
+                              - background: transparent
+                              - box-shadow: none
+                              - border: none
+                              - opacity: '0.001'
+                              - padding: '0'
+                              - margin: '0'
+                              - '--mdc-ripple-color': transparent
+                              - '--mdc-ripple-press-opacity': '0'
+                          tap_action:
+                            action: navigate
+                            navigation_path: '#inv_status'
+                  - type: vertical-stack
+                    cards:
+                      - type: custom:bubble-card
+                        card_type: pop-up
+                        hash: '#pv'
+                        name: PV
+                        icon: mdi:solar-power
+                        close_by_clicking_outside: true
+                        bg_opacity: '60'
+                        bg_blur: '10'
+                        card_mod:
+                          style: >
+                            :host {
+                              --primary-text-color: #ffffff;
+                              --secondary-text-color: rgba(255,255,255,0.75);
+                              --bubble-pop-up-title-color: #ffffff;
+                              --bubble-pop-up-icon-color: #ffffff;
+                            }
+
+                            ha-card { color:#fff !important; text-shadow:0 0 6px
+                            rgba(255,255,255,0.28); }
+                      - type: entities
+                        show_header_toggle: false
+                        card_mod:
+                          style: >
+                            ha-card{
+                              border-radius:22px !important; overflow:hidden !important;
+                              box-shadow:0 18px 44px rgba(0,0,0,0.55) !important;
+                              background:rgba(13,18,22,0.80) !important;
+                              border:1px solid rgba(255,255,255,0.08) !important;
+                              backdrop-filter: blur(10px);
+                              color:#fff !important;
+                              --primary-text-color:#fff;
+                              --secondary-text-color:rgba(255,255,255,0.75);
+                            }
+
+                            .card-content{ padding:12px 14px 14px !important; }
+
+                            .entity__name,.name{ text-shadow:0 0 5px
+                            rgba(255,255,255,0.22); }
+
+                            .state,.value{ text-shadow:0 0 6px
+                            rgba(255,255,255,0.30); font-weight:600; }
+                        entities:
+                          - sensor.anenji_inverter_pv1_voltage
+                          - sensor.anenji_inverter_pv1_current
+                          - sensor.anenji_inverter_pv1_power
+                          - sensor.anenji_inverter_pv2_voltage
+                          - sensor.anenji_inverter_pv2_current
+                          - sensor.anenji_inverter_pv2_power
+                  - type: vertical-stack
+                    cards:
+                      - type: custom:bubble-card
+                        card_type: pop-up
+                        hash: '#battery'
+                        name: Battery
+                        icon: mdi:battery
+                        close_by_clicking_outside: true
+                        bg_opacity: '60'
+                        bg_blur: '10'
+                        card_mod:
+                          style: >
+                            :host {
+                              --primary-text-color: #ffffff;
+                              --secondary-text-color: rgba(255,255,255,0.75);
+                              --bubble-pop-up-title-color: #ffffff;
+                              --bubble-pop-up-icon-color: #ffffff;
+                            }
+
+                            ha-card { color:#fff !important; text-shadow:0 0 6px
+                            rgba(255,255,255,0.28); }
+                      - type: entities
+                        show_header_toggle: false
+                        card_mod:
+                          style: >
+                            ha-card{
+                              border-radius:22px !important; overflow:hidden !important;
+                              box-shadow:0 18px 44px rgba(0,0,0,0.55) !important;
+                              background:rgba(13,18,22,0.80) !important;
+                              border:1px solid rgba(255,255,255,0.08) !important;
+                              backdrop-filter: blur(10px);
+                              color:#fff !important;
+                              --primary-text-color:#fff;
+                              --secondary-text-color:rgba(255,255,255,0.75);
+                            }
+
+                            .card-content{ padding:12px 14px 14px !important; }
+
+                            .entity__name,.name{ text-shadow:0 0 5px
+                            rgba(255,255,255,0.22); }
+
+                            .state,.value{ text-shadow:0 0 6px
+                            rgba(255,255,255,0.30); font-weight:600; }
+                        entities:
+                          - sensor.anenji_inverter_battery_voltage
+                          - sensor.anenji_inverter_battery_current
+                          - sensor.anenji_inverter_battery_power_signed
+                          - sensor.anenji_inverter_battery_charge_power
+                          - sensor.anenji_inverter_battery_soc
+                  - type: vertical-stack
+                    cards:
+                      - type: custom:bubble-card
+                        card_type: pop-up
+                        hash: '#grid'
+                        name: Grid
+                        icon: mdi:transmission-tower
+                        close_by_clicking_outside: true
+                        bg_opacity: '60'
+                        bg_blur: '10'
+                        card_mod:
+                          style: >
+                            :host {
+                              --primary-text-color: #ffffff;
+                              --secondary-text-color: rgba(255,255,255,0.75);
+                              --bubble-pop-up-title-color: #ffffff;
+                              --bubble-pop-up-icon-color: #ffffff;
+                            }
+
+                            ha-card { color:#fff !important; text-shadow:0 0 6px
+                            rgba(255,255,255,0.28); }
+                      - type: entities
+                        show_header_toggle: false
+                        card_mod:
+                          style: >
+                            ha-card{
+                              border-radius:22px !important; overflow:hidden !important;
+                              box-shadow:0 18px 44px rgba(0,0,0,0.55) !important;
+                              background:rgba(13,18,22,0.80) !important;
+                              border:1px solid rgba(255,255,255,0.08) !important;
+                              backdrop-filter: blur(10px);
+                              color:#fff !important;
+                              --primary-text-color:#fff;
+                              --secondary-text-color:rgba(255,255,255,0.75);
+                            }
+
+                            .card-content{ padding:12px 14px 14px !important; }
+
+                            .entity__name,.name{ text-shadow:0 0 5px
+                            rgba(255,255,255,0.22); }
+
+                            .state,.value{ text-shadow:0 0 6px
+                            rgba(255,255,255,0.30); font-weight:600; }
+                        entities:
+                          - sensor.anenji_inverter_grid_import_power_filtered
+                          - sensor.anenji_inverter_grid_export_power_filtered
+                          - sensor.shellyem_c4d8d500468f_channel_1_voltage
+                  - type: vertical-stack
+                    cards:
+                      - type: custom:bubble-card
+                        card_type: pop-up
+                        hash: '#home'
+                        name: Home / Load
+                        icon: mdi:home
+                        close_by_clicking_outside: true
+                        bg_opacity: '60'
+                        bg_blur: '10'
+                        card_mod:
+                          style: >
+                            :host {
+                              --primary-text-color: #ffffff;
+                              --secondary-text-color: rgba(255,255,255,0.75);
+                              --bubble-pop-up-title-color: #ffffff;
+                              --bubble-pop-up-icon-color: #ffffff;
+                            }
+
+                            ha-card { color:#fff !important; text-shadow:0 0 6px
+                            rgba(255,255,255,0.28); }
+                      - type: entities
+                        show_header_toggle: false
+                        card_mod:
+                          style: >
+                            ha-card{
+                              border-radius:22px !important; overflow:hidden !important;
+                              box-shadow:0 18px 44px rgba(0,0,0,0.55) !important;
+                              background:rgba(13,18,22,0.80) !important;
+                              border:1px solid rgba(255,255,255,0.08) !important;
+                              backdrop-filter: blur(10px);
+                              color:#fff !important;
+                              --primary-text-color:#fff;
+                              --secondary-text-color:rgba(255,255,255,0.75);
+                            }
+
+                            .card-content{ padding:12px 14px 14px !important; }
+
+                            .entity__name,.name{ text-shadow:0 0 5px
+                            rgba(255,255,255,0.22); }
+
+                            .state,.value{ text-shadow:0 0 6px
+                            rgba(255,255,255,0.30); font-weight:600; }
+                        entities:
+                          - sensor.anenji_inverter_load_power_total_output
+                          - sensor.shellyem_c4d8d500468f_channel_1_power
+                          - sensor.shellyem_c4d8d500468f_channel_2_power
+                  - type: vertical-stack
+                    cards:
+                      - type: custom:bubble-card
+                        card_type: pop-up
+                        hash: '#inv_status'
+                        name: Inverter Status / Alarm
+                        icon: mdi:alert-circle-outline
+                        close_by_clicking_outside: true
+                        bg_opacity: '60'
+                        bg_blur: '10'
+                        card_mod:
+                          style: >
+                            :host {
+                              --primary-text-color: #ffffff;
+                              --secondary-text-color: rgba(255,255,255,0.75);
+                              --bubble-pop-up-title-color: #ffffff;
+                              --bubble-pop-up-icon-color: #ffffff;
+                            }
+
+                            ha-card { color:#fff !important; text-shadow:0 0 6px
+                            rgba(255,255,255,0.28); }
+                      - type: entities
+                        show_header_toggle: false
+                        card_mod:
+                          style: >
+                            ha-card{
+                              border-radius:22px !important; overflow:hidden !important;
+                              box-shadow:0 18px 44px rgba(0,0,0,0.55) !important;
+                              background:rgba(13,18,22,0.80) !important;
+                              border:1px solid rgba(255,255,255,0.08) !important;
+                              backdrop-filter: blur(10px);
+                              color:#fff !important;
+                              --primary-text-color:#fff;
+                              --secondary-text-color:rgba(255,255,255,0.75);
+                            }
+
+                            .card-content{ padding:12px 14px 14px !important; }
+
+                            .entity__name,.name{ text-shadow:0 0 5px
+                            rgba(255,255,255,0.22); }
+
+                            .state,.value{ text-shadow:0 0 6px
+                            rgba(255,255,255,0.30); font-weight:600; }
+                        entities:
+                          - binary_sensor.anenji_inverter_der_alarm_active
+                          - sensor.anenji_inverter_fault_alarm
+                  - type: vertical-stack
+                    cards:
+                      - type: custom:bubble-card
+                        card_type: pop-up
+                        hash: '#dcac'
+                        name: DC/AC
+                        icon: mdi:sync-circle
+                        close_by_clicking_outside: true
+                        bg_opacity: '60'
+                        bg_blur: '10'
+                        card_mod:
+                          style: >
+                            :host {
+                              --primary-text-color: #ffffff;
+                              --secondary-text-color: rgba(255,255,255,0.75);
+                              --bubble-pop-up-title-color: #ffffff;
+                              --bubble-pop-up-icon-color: #ffffff;
+                            }
+
+                            ha-card { color:#fff !important; text-shadow:0 0 6px
+                            rgba(255,255,255,0.28); }
+                      - type: entities
+                        show_header_toggle: false
+                        card_mod:
+                          style: >
+                            ha-card{
+                              border-radius:22px !important; overflow:hidden !important;
+                              box-shadow:0 18px 44px rgba(0,0,0,0.55) !important;
+                              background:rgba(13,18,22,0.80) !important;
+                              border:1px solid rgba(255,255,255,0.08) !important;
+                              backdrop-filter: blur(10px);
+                              color:#fff !important;
+                              --primary-text-color:#fff;
+                              --secondary-text-color:rgba(255,255,255,0.75);
+                            }
+
+                            .card-content{ padding:12px 14px 14px !important; }
+
+                            .entity__name,.name{ text-shadow:0 0 5px
+                            rgba(255,255,255,0.22); }
+
+                            .state,.value{ text-shadow:0 0 6px
+                            rgba(255,255,255,0.30); font-weight:600; }
+                        entities:
+                          - sensor.anenji_inverter_pv1_power
+                          - sensor.anenji_inverter_battery_power_signed
+                          - sensor.anenji_inverter_load_power_total_output
+                          - sensor.anenji_inverter_grid_import_power_filtered
+                          - sensor.anenji_inverter_grid_export_power_filtered
+                          - binary_sensor.anenji_inverter_der_alarm_active
+                          - sensor.anenji_inverter_fault_alarm
+              - type: vertical-stack
+                cards:
+                  - type: custom:bubble-card
+                    card_type: pop-up
+                    hash: '#pv'
+                    name: PV
+                    icon: mdi:solar-power
+                    close_by_clicking_outside: true
+                    bg_opacity: '60'
+                    bg_blur: '10'
+                    card_mod:
+                      style: >
+                        :host {
+                          --primary-text-color: #ffffff;
+                          --secondary-text-color: rgba(255,255,255,0.75);
+                          --bubble-pop-up-title-color: #ffffff;
+                          --bubble-pop-up-icon-color: #ffffff;
+                        }
+
+                        ha-card { color:#fff !important; text-shadow:0 0 6px
+                        rgba(255,255,255,0.28); }
+                  - type: entities
+                    show_header_toggle: false
+                    card_mod:
+                      style: >
+                        ha-card{
+                          border-radius:22px !important; overflow:hidden !important;
+                          box-shadow:0 18px 44px rgba(0,0,0,0.55) !important;
+                          background:rgba(13,18,22,0.80) !important;
+                          border:1px solid rgba(255,255,255,0.08) !important;
+                          backdrop-filter: blur(10px);
+                          color:#fff !important;
+                          --primary-text-color:#fff;
+                          --secondary-text-color:rgba(255,255,255,0.75);
+                        }
+
+                        .card-content{ padding:12px 14px 14px !important; }
+
+                        .entity__name,.name{ text-shadow:0 0 5px
+                        rgba(255,255,255,0.22); }
+
+                        .state,.value{ text-shadow:0 0 6px
+                        rgba(255,255,255,0.30); font-weight:600; }
+                    entities:
+                      - sensor.anenji_inverter_pv1_voltage
+                      - sensor.anenji_inverter_pv1_current
+                      - sensor.anenji_inverter_pv1_power
+                      - sensor.anenji_inverter_pv2_voltage
+                      - sensor.anenji_inverter_pv2_current
+                      - sensor.anenji_inverter_pv2_power
+              - type: vertical-stack
+                cards:
+                  - type: custom:bubble-card
+                    card_type: pop-up
+                    hash: '#battery'
+                    name: Battery
+                    icon: mdi:battery
+                    close_by_clicking_outside: true
+                    bg_opacity: '60'
+                    bg_blur: '10'
+                    card_mod:
+                      style: >
+                        :host {
+                          --primary-text-color: #ffffff;
+                          --secondary-text-color: rgba(255,255,255,0.75);
+                          --bubble-pop-up-title-color: #ffffff;
+                          --bubble-pop-up-icon-color: #ffffff;
+                        }
+
+                        ha-card { color:#fff !important; text-shadow:0 0 6px
+                        rgba(255,255,255,0.28); }
+                  - type: entities
+                    show_header_toggle: false
+                    card_mod:
+                      style: >
+                        ha-card{
+                          border-radius:22px !important; overflow:hidden !important;
+                          box-shadow:0 18px 44px rgba(0,0,0,0.55) !important;
+                          background:rgba(13,18,22,0.80) !important;
+                          border:1px solid rgba(255,255,255,0.08) !important;
+                          backdrop-filter: blur(10px);
+                          color:#fff !important;
+                          --primary-text-color:#fff;
+                          --secondary-text-color:rgba(255,255,255,0.75);
+                        }
+
+                        .card-content{ padding:12px 14px 14px !important; }
+
+                        .entity__name,.name{ text-shadow:0 0 5px
+                        rgba(255,255,255,0.22); }
+
+                        .state,.value{ text-shadow:0 0 6px
+                        rgba(255,255,255,0.30); font-weight:600; }
+                    entities:
+                      - sensor.anenji_inverter_battery_voltage
+                      - sensor.anenji_inverter_battery_current
+                      - sensor.anenji_inverter_battery_power_signed
+                      - sensor.anenji_inverter_battery_charge_power
+                      - sensor.anenji_inverter_battery_soc
+              - type: vertical-stack
+                cards:
+                  - type: custom:bubble-card
+                    card_type: pop-up
+                    hash: '#grid'
+                    name: Grid
+                    icon: mdi:transmission-tower
+                    close_by_clicking_outside: true
+                    bg_opacity: '60'
+                    bg_blur: '10'
+                    card_mod:
+                      style: >
+                        :host {
+                          --primary-text-color: #ffffff;
+                          --secondary-text-color: rgba(255,255,255,0.75);
+                          --bubble-pop-up-title-color: #ffffff;
+                          --bubble-pop-up-icon-color: #ffffff;
+                        }
+
+                        ha-card { color:#fff !important; text-shadow:0 0 6px
+                        rgba(255,255,255,0.28); }
+                  - type: entities
+                    show_header_toggle: false
+                    card_mod:
+                      style: >
+                        ha-card{
+                          border-radius:22px !important; overflow:hidden !important;
+                          box-shadow:0 18px 44px rgba(0,0,0,0.55) !important;
+                          background:rgba(13,18,22,0.80) !important;
+                          border:1px solid rgba(255,255,255,0.08) !important;
+                          backdrop-filter: blur(10px);
+                          color:#fff !important;
+                          --primary-text-color:#fff;
+                          --secondary-text-color:rgba(255,255,255,0.75);
+                        }
+
+                        .card-content{ padding:12px 14px 14px !important; }
+
+                        .entity__name,.name{ text-shadow:0 0 5px
+                        rgba(255,255,255,0.22); }
+
+                        .state,.value{ text-shadow:0 0 6px
+                        rgba(255,255,255,0.30); font-weight:600; }
+                    entities:
+                      - sensor.anenji_inverter_grid_import_power_filtered
+                      - sensor.anenji_inverter_grid_export_power_filtered
+                      - sensor.shellyem_c4d8d500468f_channel_1_voltage
+              - type: vertical-stack
+                cards:
+                  - type: custom:bubble-card
+                    card_type: pop-up
+                    hash: '#home'
+                    name: Home / Load
+                    icon: mdi:home
+                    close_by_clicking_outside: true
+                    bg_opacity: '60'
+                    bg_blur: '10'
+                    card_mod:
+                      style: >
+                        :host {
+                          --primary-text-color: #ffffff;
+                          --secondary-text-color: rgba(255,255,255,0.75);
+                          --bubble-pop-up-title-color: #ffffff;
+                          --bubble-pop-up-icon-color: #ffffff;
+                        }
+
+                        ha-card { color:#fff !important; text-shadow:0 0 6px
+                        rgba(255,255,255,0.28); }
+                  - type: entities
+                    show_header_toggle: false
+                    card_mod:
+                      style: >
+                        ha-card{
+                          border-radius:22px !important; overflow:hidden !important;
+                          box-shadow:0 18px 44px rgba(0,0,0,0.55) !important;
+                          background:rgba(13,18,22,0.80) !important;
+                          border:1px solid rgba(255,255,255,0.08) !important;
+                          backdrop-filter: blur(10px);
+                          color:#fff !important;
+                          --primary-text-color:#fff;
+                          --secondary-text-color:rgba(255,255,255,0.75);
+                        }
+
+                        .card-content{ padding:12px 14px 14px !important; }
+
+                        .entity__name,.name{ text-shadow:0 0 5px
+                        rgba(255,255,255,0.22); }
+
+                        .state,.value{ text-shadow:0 0 6px
+                        rgba(255,255,255,0.30); font-weight:600; }
+                    entities:
+                      - sensor.anenji_inverter_load_power_total_output
+                      - sensor.shellyem_c4d8d500468f_channel_1_power
+                      - sensor.shellyem_c4d8d500468f_channel_2_power
+              - type: vertical-stack
+                cards:
+                  - type: custom:bubble-card
+                    card_type: pop-up
+                    hash: '#inv_status'
+                    name: Inverter Status / Alarm
+                    icon: mdi:alert-circle-outline
+                    close_by_clicking_outside: true
+                    bg_opacity: '60'
+                    bg_blur: '10'
+                    card_mod:
+                      style: >
+                        :host {
+                          --primary-text-color: #ffffff;
+                          --secondary-text-color: rgba(255,255,255,0.75);
+                          --bubble-pop-up-title-color: #ffffff;
+                          --bubble-pop-up-icon-color: #ffffff;
+                        }
+
+                        ha-card { color:#fff !important; text-shadow:0 0 6px
+                        rgba(255,255,255,0.28); }
+                  - type: entities
+                    show_header_toggle: false
+                    card_mod:
+                      style: >
+                        ha-card{
+                          border-radius:22px !important; overflow:hidden !important;
+                          box-shadow:0 18px 44px rgba(0,0,0,0.55) !important;
+                          background:rgba(13,18,22,0.80) !important;
+                          border:1px solid rgba(255,255,255,0.08) !important;
+                          backdrop-filter: blur(10px);
+                          color:#fff !important;
+                          --primary-text-color:#fff;
+                          --secondary-text-color:rgba(255,255,255,0.75);
+                        }
+
+                        .card-content{ padding:12px 14px 14px !important; }
+
+                        .entity__name,.name{ text-shadow:0 0 5px
+                        rgba(255,255,255,0.22); }
+
+                        .state,.value{ text-shadow:0 0 6px
+                        rgba(255,255,255,0.30); font-weight:600; }
+                    entities:
+                      - binary_sensor.anenji_inverter_der_alarm_active
+                      - sensor.anenji_inverter_fault_alarm
