@@ -60,20 +60,19 @@ modbus:
   id: modbus1
   uart_id: uart_rs485
   flow_control_pin: GPIO21
-  # more conservative timing to reduce CRC errors
-  send_wait_time: 750ms
+  # Stable + CRC-safe timing (tune later if you want faster)
+  send_wait_time: 300ms
 
 modbus_controller:
   - id: inv
     modbus_id: modbus1
     address: 0x01
-    update_interval: 6s
-    command_throttle: 1000ms
+    # stability > speed
+    update_interval: 10s
+    # keep spacing between commands
+    command_throttle: 500ms
     setup_priority: -10
 
-# ===============================
-# GLOBALS (Modbus OK tracking + select helpers)
-# ===============================
 globals:
   - id: last_modbus_ok_ms
     type: uint32_t
@@ -105,7 +104,7 @@ button:
 # SENSORS
 # ===============================
 sensor:
-  # -------- BATTERY (V/A/SOC) --------
+  # -------- BATTERY --------
   - platform: modbus_controller
     modbus_controller_id: inv
     id: batt_v
@@ -113,8 +112,6 @@ sensor:
     address: 0x7530
     register_type: holding
     value_type: U_WORD
-    register_count: 3
-    offset: 0
     unit_of_measurement: "V"
     accuracy_decimals: 1
     filters:
@@ -130,10 +127,9 @@ sensor:
     modbus_controller_id: inv
     id: batt_a
     name: "Battery Current"
-    address: 0x7530
+    address: 0x7531
     register_type: holding
     value_type: S_WORD
-    offset: 2      # 0x7531
     unit_of_measurement: "A"
     accuracy_decimals: 1
     filters:
@@ -141,16 +137,16 @@ sensor:
       - lambda: |-
           if (isnan(x)) return x;
           if (x < -300.0f || x > 300.0f) return NAN;
+          id(last_modbus_ok_ms) = millis();
           return x;
 
   - platform: modbus_controller
     modbus_controller_id: inv
     id: batt_soc
     name: "Battery SOC"
-    address: 0x7530
+    address: 0x7532
     register_type: holding
     value_type: U_WORD
-    offset: 4      # 0x7532
     unit_of_measurement: "%"
     accuracy_decimals: 0
     filters:
@@ -159,7 +155,6 @@ sensor:
           if (x < 0.0f || x > 100.0f) return NAN;
           id(last_modbus_ok_ms) = millis();
           return x;
-
 
   # V*A Power (raw)
   - platform: template
@@ -183,7 +178,6 @@ sensor:
       if (isnan(id(batt_power_va_w).state)) return NAN;
       float p = -id(batt_power_va_w).state;
       if (fabsf(p) < 80.0f) return 0.0f;
-      // reject insane spikes caused by CRC glitches
       if (p < -25000.0f || p > 25000.0f) return NAN;
       return p;
 
@@ -194,8 +188,8 @@ sensor:
     unit_of_measurement: "W"
     accuracy_decimals: 0
     lambda: |-
-      if (isnan(id(battery_power_signed).state)) return NAN;
       float p = id(battery_power_signed).state;
+      if (isnan(p)) return NAN;
       return (p > 0) ? p : 0;
 
   - platform: template
@@ -205,8 +199,8 @@ sensor:
     unit_of_measurement: "W"
     accuracy_decimals: 0
     lambda: |-
-      if (isnan(id(battery_power_signed).state)) return NAN;
       float p = id(battery_power_signed).state;
+      if (isnan(p)) return NAN;
       return (p < 0) ? (-p) : 0;
 
   - platform: total_daily_energy
@@ -227,7 +221,7 @@ sensor:
     filters:
       - multiply: 0.001
 
-  # Read range 0x753B..0x7540 (6 registers) once, then use byte offsets per value.
+  # -------- PV --------
   - platform: modbus_controller
     modbus_controller_id: inv
     id: pv1_voltage
@@ -235,8 +229,6 @@ sensor:
     address: 0x753B
     register_type: holding
     value_type: U_WORD
-    register_count: 6          # span the whole PV block in one command
-    offset: 0                  # bytes from 0x753B
     unit_of_measurement: "V"
     accuracy_decimals: 1
     filters:
@@ -246,10 +238,9 @@ sensor:
     modbus_controller_id: inv
     id: pv1_current
     name: "PV1 Current"
-    address: 0x753B
+    address: 0x753C
     register_type: holding
     value_type: U_WORD
-    offset: 2                  # 0x753C
     unit_of_measurement: "A"
     accuracy_decimals: 1
     filters:
@@ -259,20 +250,18 @@ sensor:
     modbus_controller_id: inv
     id: pv1_power
     name: "PV1 Power"
-    address: 0x753B
+    address: 0x753D
     register_type: holding
     value_type: U_WORD
-    offset: 4                  # 0x753D
     unit_of_measurement: "W"
 
   - platform: modbus_controller
     modbus_controller_id: inv
     id: pv2_voltage
     name: "PV2 Voltage"
-    address: 0x753B
+    address: 0x753E
     register_type: holding
     value_type: U_WORD
-    offset: 6                  # 0x753E
     unit_of_measurement: "V"
     accuracy_decimals: 1
     filters:
@@ -286,10 +275,9 @@ sensor:
     modbus_controller_id: inv
     id: pv2_current
     name: "PV2 Current"
-    address: 0x753B
+    address: 0x753F
     register_type: holding
-    value_type: S_WORD
-    offset: 8                  # 0x753F
+    value_type: U_WORD
     unit_of_measurement: "A"
     accuracy_decimals: 1
     filters:
@@ -299,12 +287,10 @@ sensor:
     modbus_controller_id: inv
     id: pv2_power
     name: "PV2 Power"
-    address: 0x753B
+    address: 0x7540
     register_type: holding
     value_type: U_WORD
-    offset: 10                 # 0x7540
     unit_of_measurement: "W"
-
 
   # -------- OUTPUT / LOAD --------
   - platform: modbus_controller
@@ -314,8 +300,6 @@ sensor:
     address: 0x7548
     register_type: holding
     value_type: U_WORD
-    register_count: 23   # 0x7548..0x755E inclusive
-    offset: 0
     unit_of_measurement: "V"
     accuracy_decimals: 1
     filters:
@@ -325,10 +309,9 @@ sensor:
     modbus_controller_id: inv
     id: out_hz
     name: "Output Frequency"
-    address: 0x7548
+    address: 0x754A
     register_type: holding
     value_type: U_WORD
-    offset: 4            # 0x754A
     unit_of_measurement: "Hz"
     accuracy_decimals: 2
     filters:
@@ -338,22 +321,19 @@ sensor:
     modbus_controller_id: inv
     id: load_l1
     name: "Load Power L1 (Output)"
-    address: 0x7548
+    address: 0x754C
     register_type: holding
     value_type: S_WORD
-    offset: 8            # 0x754C
     unit_of_measurement: "W"
 
   - platform: modbus_controller
     modbus_controller_id: inv
     id: load_total_out
     name: "Load Power Total (Output)"
-    address: 0x7548
+    address: 0x755E
     register_type: holding
     value_type: S_WORD
-    offset: 44           # 0x755E (22 regs * 2 bytes)
     unit_of_measurement: "W"
-
 
   - platform: template
     id: load_l2
@@ -364,7 +344,6 @@ sensor:
     lambda: |-
       if (isnan(id(load_total_out).state) || isnan(id(load_l1).state)) return NAN;
       float v = id(load_total_out).state - id(load_l1).state;
-      // reject nonsense from partial corruption
       if (v < -20000.0f || v > 20000.0f) return NAN;
       return v;
 
@@ -387,11 +366,12 @@ sensor:
     filters:
       - multiply: 0.001
 
-  # -------- GRID (CT Grid-side) --------
+  # -------- GRID (your inverter registers) --------
+  # Keeping your current addresses as-is (since they're working for you).
   - platform: modbus_controller
     modbus_controller_id: inv
     id: grid_l1
-    name: "Grid Power L1 (CT Grid-Side)"
+    name: "L1 (CT Grid-Side)"
     address: 0x7584
     register_type: holding
     value_type: S_WORD
@@ -407,7 +387,7 @@ sensor:
   - platform: modbus_controller
     modbus_controller_id: inv
     id: grid_l2
-    name: "Grid Power L2 (CT Grid-Side)"
+    name: "L2 (CT Grid-Side)"
     address: 0x7585
     register_type: holding
     value_type: S_WORD
@@ -492,162 +472,161 @@ sensor:
     filters:
       - multiply: 0.001
 
-##################virtual duty
-  - platform: template
-    name: "Fan Estimated Duty"
-    unit_of_measurement: "%"
-    lambda: |-
-      float t = id(inv_temp_3_c).state;
-      if (t < 35) return 0;
-      if (t < 40) return 40;
-      if (t < 45) return 70;
-      return 100;
-
-  # -------- TEMPERATURES (0.1°C) 0x7579..0x757C --------
+  # -------- TEMPERATURES --------
   - platform: modbus_controller
     modbus_controller_id: inv
     id: inv_temp_1_c
     address: 0x7579
     register_type: holding
     value_type: S_WORD
-    register_count: 6
-    offset: 0
     filters:
       - multiply: 0.1
 
   - platform: modbus_controller
     modbus_controller_id: inv
     id: inv_temp_2_c
-    address: 0x7579
+    address: 0x757A
     register_type: holding
     value_type: S_WORD
-    offset: 2
     filters:
       - multiply: 0.1
 
   - platform: modbus_controller
     modbus_controller_id: inv
     id: inv_temp_3_c
-    address: 0x7579
+    address: 0x757B
     register_type: holding
     value_type: S_WORD
-    offset: 4
     filters:
       - multiply: 0.1
 
   - platform: modbus_controller
     modbus_controller_id: inv
     id: inv_temp_4_c
-    address: 0x7579
+    address: 0x757C
     register_type: holding
     value_type: S_WORD
-    offset: 6
     filters:
       - multiply: 0.1
 
-
-  # ---- Convert to °F ----
-  - platform: template
-    id: inverter_temp_1_f
-    name: "Inverter Transformer Temperature"
-    unit_of_measurement: "°F"
-    device_class: temperature
-    state_class: measurement
-    accuracy_decimals: 1
-    update_interval: 10s
-    lambda: |-
-      float c = id(inv_temp_1_c).state;
-      if (isnan(c)) return NAN;
-      float f = (c * 9.0f / 5.0f) + 32.0f;
-      return roundf(f * 10.0f) / 10.0f;
-
-  - platform: template
-    id: inverter_temp_2_f
-    name: "Inverter AC Temperature"
-    unit_of_measurement: "°F"
-    device_class: temperature
-    state_class: measurement
-    accuracy_decimals: 1
-    update_interval: 10s
-    lambda: |-
-      float c = id(inv_temp_2_c).state;
-      if (isnan(c)) return NAN;
-      float f = (c * 9.0f / 5.0f) + 32.0f;
-      return roundf(f * 10.0f) / 10.0f;
-
-  - platform: template
-    id: inverter_temp_3_f
-    name: "Inverter DC Temperature"
-    unit_of_measurement: "°F"
-    device_class: temperature
-    state_class: measurement
-    accuracy_decimals: 1
-    update_interval: 10s
-    lambda: |-
-      float c = id(inv_temp_3_c).state;
-      if (isnan(c)) return NAN;
-      float f = (c * 9.0f / 5.0f) + 32.0f;
-      return roundf(f * 10.0f) / 10.0f;
-
-  - platform: template
-    id: inverter_temp_4_f
-    name: "Inverter Temp Point 4"
-    unit_of_measurement: "°F"
-    device_class: temperature
-    state_class: measurement
-    accuracy_decimals: 1
-    update_interval: 10s
-    lambda: |-
-      float c = id(inv_temp_4_c).state;
-      if (isnan(c)) return NAN;
-      float f = (c * 9.0f / 5.0f) + 32.0f;
-      return roundf(f * 10.0f) / 10.0f;
-
-  - platform: template
-    id: inverter_hottest_temp
-    name: "Inverter highest Temperature"
-    unit_of_measurement: "°F"
-    device_class: temperature
-    state_class: measurement
-    accuracy_decimals: 1
-    update_interval: 10s
-    lambda: |-
-      float t1 = id(inverter_temp_1_f).state;
-      float t2 = id(inverter_temp_2_f).state;
-      float t3 = id(inverter_temp_3_f).state;
-      float t4 = id(inverter_temp_4_f).state;
-
-      bool any = false;
-      float mx = -9999.0f;
-      if (!isnan(t1)) { any = true; if (t1 > mx) mx = t1; }
-      if (!isnan(t2)) { any = true; if (t2 > mx) mx = t2; }
-      if (!isnan(t3)) { any = true; if (t3 > mx) mx = t3; }
-      if (!isnan(t4)) { any = true; if (t4 > mx) mx = t4; }
-      if (!any) return NAN;
-      return mx;
-
-  - platform: template
-    id: inverter_heartbeat
-    name: "Inverter Heartbeat"
-    update_interval: 10s
-    unit_of_measurement: "s"
-    accuracy_decimals: 0
-    lambda: |-
-      return (float)(millis() / 1000);
-
-# ===============================
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: der_alarm_status
+    address: 0x75AF
+    register_type: holding
+    value_type: U_WORD
+    internal: true
 # BINARY SENSORS
 # ===============================
 binary_sensor:
   - platform: template
     id: inverter_modbus_ok
-    name: "Anenji Inverter Modbus OK"
+    name: "Anenji Status"
     device_class: connectivity
     lambda: |-
       if (id(last_modbus_ok_ms) == 0) return false;
       const uint32_t age = millis() - id(last_modbus_ok_ms);
       return age < 20000;
 
+  - platform: template
+    name: "Alarm Active"
+    id: der_alarm_active
+    device_class: problem
+    lambda: |-
+      return ((uint16_t) id(der_alarm_status).state) != 0;
+
+  - platform: template
+    name: "Fault Over Current"
+    device_class: problem
+    lambda: |-
+      return ((uint16_t) id(der_alarm_status).state >> 0) & 1;
+
+  - platform: template
+    name: "Fault Over Voltage"
+    device_class: problem
+    lambda: |-
+      return ((uint16_t) id(der_alarm_status).state >> 1) & 1;
+
+  - platform: template
+    name: "Under Voltage Fault"
+    device_class: problem
+    lambda: |-
+      return ((uint16_t) id(der_alarm_status).state >> 2) & 1;
+
+  - platform: template
+    name: "Fault Over Frequency"
+    device_class: problem
+    lambda: |-
+      return ((uint16_t) id(der_alarm_status).state >> 3) & 1;
+
+  - platform: template
+    name: "Under Frequency Fault"
+    device_class: problem
+    lambda: |-
+      return ((uint16_t) id(der_alarm_status).state >> 4) & 1;
+
+  - platform: template
+    name: "Fault Voltage Imbalance"
+    device_class: problem
+    lambda: |-
+      return ((uint16_t) id(der_alarm_status).state >> 5) & 1;
+
+  - platform: template
+    name: "Fault Current Imbalance"
+    device_class: problem
+    lambda: |-
+      return ((uint16_t) id(der_alarm_status).state >> 6) & 1;
+
+  - platform: template
+    name: "Fault Emergency Local"
+    device_class: safety
+    lambda: |-
+      return ((uint16_t) id(der_alarm_status).state >> 7) & 1;
+
+  - platform: template
+    name: "Fault Emergency Remote"
+    device_class: safety
+    lambda: |-
+      return ((uint16_t) id(der_alarm_status).state >> 8) & 1;
+
+  - platform: template
+    name: "Fault Low Power Input"
+    device_class: problem
+    lambda: |-
+      return ((uint16_t) id(der_alarm_status).state >> 9) & 1;
+
+  - platform: template
+    name: "Fault Phase Rotation"
+    device_class: problem
+    lambda: |-
+      return ((uint16_t) id(der_alarm_status).state >> 10) & 1;
+
+text_sensor:
+  - platform: template
+    name: "Fault Alarm"
+    id: der_alarm_list
+    icon: mdi:alert-circle-outline
+    update_interval: 6s
+    lambda: |-
+      uint16_t v = (uint16_t) id(der_alarm_status).state;
+      if (v == 0) return std::string("OK");
+
+      std::string out;
+      auto add = [&](const char* s) { if (!out.empty()) out += ", "; out += s; };
+
+      if (v & (1 << 0))  add("Over Current");
+      if (v & (1 << 1))  add("Over Voltage");
+      if (v & (1 << 2))  add("Under Voltage");
+      if (v & (1 << 3))  add("Over Frequency");
+      if (v & (1 << 4))  add("Under Frequency");
+      if (v & (1 << 5))  add("Voltage Imbalance");
+      if (v & (1 << 6))  add("Current Imbalance");
+      if (v & (1 << 7))  add("Emergency Local");
+      if (v & (1 << 8))  add("Emergency Remote");
+      if (v & (1 << 9))  add("Low Power Input");
+      if (v & (1 << 10)) add("Phase Rotation");
+
+      return out;
 
 # ===============================
 # PERIODIC ENFORCEMENT
@@ -703,10 +682,6 @@ switch:
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
 
-
-# ===============================
-# NUMBERS
-# ===============================
 number:
   - platform: modbus_controller
     modbus_controller_id: inv
@@ -719,7 +694,7 @@ number:
     min_value: 0
     max_value: 3
     step: 1
-    skip_updates: 100
+    skip_updates: 20
 
   - platform: modbus_controller
     modbus_controller_id: inv
@@ -732,7 +707,7 @@ number:
     min_value: 0
     max_value: 3
     step: 1
-    skip_updates: 100
+    skip_updates: 20
 
   - platform: modbus_controller
     modbus_controller_id: inv
@@ -746,18 +721,24 @@ number:
     step: 50
     skip_updates: 30
 
-# ===============================
-# SELECTS (Dropdowns)
-# ===============================
 select:
   - platform: template
     name: "Inverter Charging Priority"
-    optimistic: true
+    id: inverter_charging_priority
+    optimistic: false
     options:
       - "Solar priority"
       - "Grid priority"
       - "Hybrid (PV first)"
       - "PV only"
+    lambda: |-
+      if (!id(charging_priority_raw).has_state()) return std::string("Solar priority");
+      int v = (int) id(charging_priority_raw).state;
+      if (v == 0) return std::string("Solar priority");
+      if (v == 1) return std::string("Grid priority");
+      if (v == 2) return std::string("Hybrid (PV first)");
+      if (v == 3) return std::string("PV only");
+      return std::string("Solar priority");
     set_action:
       - lambda: |-
           uint16_t v = 0;
@@ -772,15 +753,24 @@ select:
 
   - platform: template
     name: "Inverter Load Priority"
-    optimistic: true
+    id: inverter_load_priority
+    optimistic: false
     options:
       - "Solar priority"
       - "Grid priority"
       - "Battery priority"
       - "Hybrid priority"
+    lambda: |-
+      if (!id(load_priority_raw).has_state()) return std::string("Battery priority");
+      int v = (int) id(load_priority_raw).state;
+      if (v == 0) return std::string("Solar priority");
+      if (v == 1) return std::string("Grid priority");
+      if (v == 2) return std::string("Battery priority");
+      if (v == 3) return std::string("Hybrid priority");
+      return std::string("Battery priority");
     set_action:
       - lambda: |-
-          uint16_t v = 0;
+          uint16_t v = 2;
           if (x == "Solar priority") v = 0;
           else if (x == "Grid priority") v = 1;
           else if (x == "Battery priority") v = 2;
