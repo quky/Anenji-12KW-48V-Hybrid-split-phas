@@ -42,6 +42,7 @@ Fully compatible with:
 - ✅ Restart Inverter
 - ✅ Enforce Zero Export (A089 = 0)
 - ✅ Disable Grid Feed-in (A088)
+<img width="422" height="423" alt="inverter_ui" src="https://github.com/user-attachments/assets/b29f41f6-4868-4799-8fd5-aa1c4ecaa66c" />
 
 ---
 
