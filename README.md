@@ -44,10 +44,6 @@ Fully compatible with:
 - ✅ Disable Grid Feed-in (A088)
 <img width="422" height="423" alt="inverter_ui" src="https://github.com/user-attachments/assets/b29f41f6-4868-4799-8fd5-aa1c4ecaa66c" />
 
-
-https://github.com/user-attachments/assets/1029c50d-f49d-40d1-a5d4-4ec7f76dd869
-
-
 ---
 
 # 🧰 Hardware Required
