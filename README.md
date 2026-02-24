@@ -1,7 +1,7 @@
 # 🔋 Anenji 12kW Split-Phase Inverter  
 ## ESPHome Modbus RS485 Integration for Home Assistant
 
-Professional, open-source integration for the **Anenji 12kW Split-Phase (48V)** inverter using:
+Open-source integration for the **Anenji 12kW Split-Phase (48V)** inverter using:
 
 - 🧠 ESPHome  
 - 🔌 Modbus RTU (RS485)  
