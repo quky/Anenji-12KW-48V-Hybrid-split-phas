@@ -307,6 +307,43 @@ sensor:
 
   - platform: modbus_controller
     modbus_controller_id: inv
+    id: out_curr_l1
+    name: "Output Current L1"
+    address: 0x7549
+    register_type: holding
+    value_type: S_WORD
+    unit_of_measurement: "A"
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: out_v_l2
+    name: "Output Voltage L2"
+    address: 0x7550
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "V"
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: out_curr_l2
+    name: "Output Current L2"
+    address: 0x7551
+    register_type: holding
+    value_type: S_WORD
+    unit_of_measurement: "A"
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
     id: out_hz
     name: "Output Frequency"
     address: 0x754A
@@ -365,6 +402,154 @@ sensor:
     method: trapezoid
     filters:
       - multiply: 0.001
+
+
+  # -------- PHASE POWER DETAILS --------
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: out_w_l1
+    name: "Output Active Power L1"
+    address: 0x754C
+    register_type: holding
+    value_type: S_WORD
+    unit_of_measurement: "W"
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: out_va_l1
+    name: "Output Apparent Power L1"
+    address: 0x754D
+    register_type: holding
+    value_type: S_WORD
+    unit_of_measurement: "VA"
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: load_percent_l1
+    name: "Load Percentage L1"
+    address: 0x754E
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "%"
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: normal_load_w_l1
+    name: "Conventional Load Active Power L1"
+    address: 0x754F
+    register_type: holding
+    value_type: S_WORD
+    unit_of_measurement: "W"
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: inverter_current_l2
+    name: "Inverter Inductor Current L2"
+    address: 0x7552
+    register_type: holding
+    value_type: S_WORD
+    unit_of_measurement: "A"
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: out_w_l2
+    name: "Output Active Power L2"
+    address: 0x7553
+    register_type: holding
+    value_type: S_WORD
+    unit_of_measurement: "W"
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: out_va_l2
+    name: "Output Apparent Power L2"
+    address: 0x7554
+    register_type: holding
+    value_type: S_WORD
+    unit_of_measurement: "VA"
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: load_percent_l2
+    name: "Load Percentage L2"
+    address: 0x7555
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "%"
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: normal_load_w_l2
+    name: "Conventional Load Active Power L2"
+    address: 0x7556
+    register_type: holding
+    value_type: S_WORD
+    unit_of_measurement: "W"
+
+
+  # -------- MAINS / GRID MEASUREMENTS (V/I/Hz) --------
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: mains_v_l1
+    name: "Mains Voltage L1"
+    address: 0x756A
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "V"
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: mains_a_l1
+    name: "Mains Current L1"
+    address: 0x756B
+    register_type: holding
+    value_type: S_WORD
+    unit_of_measurement: "A"
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: mains_hz
+    name: "Mains Frequency"
+    address: 0x756C
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "Hz"
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: mains_v_l2
+    name: "Mains Voltage L2"
+    address: 0x756D
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "V"
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: mains_a_l2
+    name: "Mains Current L2"
+    address: 0x756E
+    register_type: holding
+    value_type: S_WORD
+    unit_of_measurement: "A"
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
 
   # -------- GRID (your inverter registers) --------
   # Keeping your current addresses as-is (since they're working for you).
