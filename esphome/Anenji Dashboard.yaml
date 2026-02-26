@@ -1,3 +1,4 @@
+# need Browser Mod 2.8.0-beta.2+ and UIX installed
 type: custom:button-card
 entity: sensor.anenji_inverter_load_power_total_output
 update_interval: 12
@@ -908,6 +909,9 @@ custom_fields:
           dismissable: true
           size: normal
           style: >
+
+            ha-dialog .mdc-dialog__content { padding: 0 !important; } ha-dialog
+            .mdc-dialog__surface { background: transparent !important; }
             ha-dialog::part(header) { display: none !important; }
 
             browser-mod-popup::part(header) { display: none !important; }
@@ -923,6 +927,12 @@ custom_fields:
                 border-radius: 26px 26px 0 0 !important;
                     }
                   }
+          uix:
+            style:
+              ha-dialog $ wa-dialog $: |
+                ha-dialog-header { display: none !important; }
+                header { display: none !important; }
+                .dialog__panel { padding: 0 !important; }
           content:
             type: custom:button-card
             triggers_update:
@@ -1004,6 +1014,10 @@ custom_fields:
 
                   return `
                     <style>
+                      /* --- Popup header compact + remove big white area --- */
+                      .wrap{background: rgba(15,20,24,0.94) !important; padding: 12px !important; border-radius: 22px !important; gap: 10px !important;}
+                      .title{margin: 0 0 8px 0 !important; font-size: 18px !important; font-weight: 800 !important; letter-spacing: .3px !important; color: #fff !important; text-align: center !important; width: 100% !important;}
+
                       .wrap{display:flex;flex-direction:column;gap:10px;}
                         .wrap{
                           align-items:flex-start;
@@ -1584,6 +1598,9 @@ custom_fields:
           dismissable: true
           size: normal
           style: >
+
+            ha-dialog .mdc-dialog__content { padding: 0 !important; } ha-dialog
+            .mdc-dialog__surface { background: transparent !important; }
             ha-dialog::part(header) { display: none !important; }
 
             browser-mod-popup::part(header) { display: none !important; }
@@ -1597,6 +1614,12 @@ custom_fields:
                 margin: 0 !important; width: 100vw !important; max-width: 100vw !important; border-radius: 26px 26px 0 0 !important;
                     }
                   }
+          uix:
+            style:
+              ha-dialog $ wa-dialog $: |
+                ha-dialog-header { display: none !important; }
+                header { display: none !important; }
+                .dialog__panel { padding: 0 !important; }
           content:
             type: custom:button-card
             triggers_update:
@@ -1686,6 +1709,10 @@ custom_fields:
 
                   return `
                     <style>
+                      /* --- Popup header compact + remove big white area --- */
+                      .wrap{background: rgba(15,20,24,0.94) !important; padding: 12px !important; border-radius: 22px !important; gap: 10px !important;}
+                      .title{margin: 0 0 8px 0 !important; font-size: 18px !important; font-weight: 800 !important; letter-spacing: .3px !important; color: #fff !important; text-align: center !important; width: 100% !important;}
+
                       .wrap{display:flex;flex-direction:column;gap:10px;}
                       .title{font-weight:900;letter-spacing:.3px;font-size:14px;color:#fff;text-shadow:0 0 10px rgba(255,255,255,0.22);}
                                                   :root{--popup-width:380px;}
@@ -2145,7 +2172,6 @@ custom_fields:
                         ${row("Battery Voltage", fmtV(battV), "V", "rgba(255,255,255,0.92)", 0.15, 0)}
                         ${row("Battery Current", fmtA(battA), "A", "rgba(255,255,255,0.92)", 0.15, 1)}
                         ${row("Battery Power",   fmtP(battP), unitP(battP), C, t(battP), 2)}
-                        ${row("Charge Power",    fmtP(chgP),  unitP(chgP),  C, t(chgP), 3)}
                         ${row("Battery %",       fmtSOC(SOC), "%", socColor, 0.22, 4)}
                       </div>
                     </div>
@@ -2182,6 +2208,9 @@ custom_fields:
           dismissable: true
           size: normal
           style: >
+
+            ha-dialog .mdc-dialog__content { padding: 0 !important; } ha-dialog
+            .mdc-dialog__surface { background: transparent !important; }
             ha-dialog::part(header) { display: none !important; }
 
             browser-mod-popup::part(header) { display: none !important; }
@@ -2195,6 +2224,12 @@ custom_fields:
                 margin: 0 !important; width: 100vw !important; max-width: 100vw !important; border-radius: 26px 26px 0 0 !important;
                     }
                   }
+          uix:
+            style:
+              ha-dialog $ wa-dialog $: |
+                ha-dialog-header { display: none !important; }
+                header { display: none !important; }
+                .dialog__panel { padding: 0 !important; }
           content:
             type: custom:button-card
             triggers_update:
@@ -2257,6 +2292,10 @@ custom_fields:
 
                   const gridIn=num("sensor.anenji_inverter_grid_import_power_filtered");
                   const gridOut=num("sensor.anenji_inverter_grid_export_power_filtered");
+                  const gridL1V=num("sensor.anenji_inverter_mains_voltage_l1");
+                  const gridL2V=num("sensor.anenji_inverter_mains_voltage_l2");
+                  const gridL1A=num("sensor.anenji_inverter_mains_current_l1");
+                  const gridL2A=num("sensor.anenji_inverter_mains_current_l2");
                   const acV=num("sensor.shellyem_c4d8d500468f_channel_1_voltage");
 
                   const C="#f5a623";
@@ -2272,6 +2311,10 @@ custom_fields:
 
                   return `
                     <style>
+                      /* --- Popup header compact + remove big white area --- */
+                      .wrap{background: rgba(15,20,24,0.94) !important; padding: 12px !important; border-radius: 22px !important; gap: 10px !important;}
+                      .title{margin: 0 0 8px 0 !important; font-size: 18px !important; font-weight: 800 !important; letter-spacing: .3px !important; color: #fff !important; text-align: center !important; width: 100% !important;}
+
                       .wrap{display:flex;flex-direction:column;gap:10px;}
                       .title{font-weight:900;letter-spacing:.3px;font-size:14px;color:#fff;text-shadow:0 0 10px rgba(255,255,255,0.22);}
                                                   :root{--popup-width:380px;}
@@ -2728,13 +2771,11 @@ custom_fields:
                     <div class="wrap">
                       <div class="title">Grid</div>
                       <div class="grid">
-                        ${row("Grid Import", fmtP(gridIn), unitP(gridIn), t(gridIn), 0)}
-                        ${row("Grid Export", fmtP(gridOut), unitP(gridOut), t(gridOut), 1)}
-                        <div class="row" data-i="2">
-                          <div class="name">Grid Voltage</div>
-                          <div class="val" style="color:rgba(255,255,255,0.92); text-shadow:0 0 6px rgba(255,255,255,0.18);">${fmtV(acV)}</div>
-                          <div class="unit">V</div>
-                        </div>
+                        ${row("Grid Power", fmtP(gridIn), unitP(gridIn), t(gridIn), 0)}                                 
+                        ${row("Grid Line 1 voltage", fmtP(gridL1V), "V", t(gridIn), 0)}
+                        ${row("Grid line 1 Amperage", fmtP(gridL1A), "A", t(gridL1A), 1)}
+                        ${row("Grid Line 2 voltage", fmtP(gridL2V), "V", t(gridL2V), 0)}
+                        ${row("Grid line 2 Amperage", fmtP(gridL2A), "A", t(gridL2A), 1)}
                       </div>
                     </div>
                         `;
@@ -2770,6 +2811,9 @@ custom_fields:
           dismissable: true
           size: normal
           style: >
+
+            ha-dialog .mdc-dialog__content { padding: 0 !important; } ha-dialog
+            .mdc-dialog__surface { background: transparent !important; }
             ha-dialog::part(header) { display: none !important; }
 
             browser-mod-popup::part(header) { display: none !important; }
@@ -2783,6 +2827,12 @@ custom_fields:
                 margin: 0 !important; width: 100vw !important; max-width: 100vw !important; border-radius: 26px 26px 0 0 !important;
                     }
                   }
+          uix:
+            style:
+              ha-dialog $ wa-dialog $: |
+                ha-dialog-header { display: none !important; }
+                header { display: none !important; }
+                .dialog__panel { padding: 0 !important; }
           content:
             type: custom:button-card
             triggers_update:
@@ -2842,9 +2892,16 @@ custom_fields:
                   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
                   const t=(w,maxW=12000)=>clamp(Math.abs(w)/maxW,0,1);
 
-                  const homeP=num("sensor.anenji_inverter_load_power_total_output");
-                  const ch1=num("sensor.shellyem_c4d8d500468f_channel_1_power");
-                  const ch2=num("sensor.shellyem_c4d8d500468f_channel_2_power");
+                  const homeP=num("sensor.anenji_inverter_load_power_total");
+                  const homeL1V=num("sensor.anenji_inverter_mains_voltage_l1");
+                  const homeL1A=num("sensor.anenji_inverter_output_current_l1");
+                  const homeL2V=num("sensor.anenji_inverter_mains_voltage_l2");
+                  const homeL2A=num("sensor.anenji_inverter_output_current_l2");
+                  
+                  const ch1=num("sensor.anenji_inverter_load_power_l1_output");
+                  const ch2=num("sensor.anenji_inverter_load_power_l2_output");
+                  const la1=num("sensor.anenji_inverter_output_current_l1");
+                  const la2=num("sensor.anenji_inverter_output_current_l2");
 
                   const C="#f5a623";
                   const ACCENT="#f5a623";
@@ -2859,6 +2916,10 @@ custom_fields:
 
                   return `
                     <style>
+                      /* --- Popup header compact + remove big white area --- */
+                      .wrap{background: rgba(15,20,24,0.94) !important; padding: 12px !important; border-radius: 22px !important; gap: 10px !important;}
+                      .title{margin: 0 0 8px 0 !important; font-size: 18px !important; font-weight: 800 !important; letter-spacing: .3px !important; color: #fff !important; text-align: center !important; width: 100% !important;}
+
                       .wrap{display:flex;flex-direction:column;gap:10px;}
                       .title{font-weight:900;letter-spacing:.3px;font-size:14px;color:#fff;text-shadow:0 0 10px rgba(255,255,255,0.22);}
                                                   :root{--popup-width:380px;}
@@ -3316,8 +3377,10 @@ custom_fields:
                       <div class="title">Home / Load</div>
                       <div class="grid">
                         ${row("Home Power", fmtP(homeP), unitP(homeP), t(homeP), 0)}
-                        ${row("Channel 1",  fmtP(ch1),   unitP(ch1),   t(ch1),   1)}
-                        ${row("Channel 2",  fmtP(ch2),   unitP(ch2),   t(ch2),   2)}
+                        ${row("Line 1 Voltage",  fmtP(homeL1V),   "V",   t(homeL1V),   1)}
+                        ${row("Line 1 Amperage",  fmtP(homeL1A),   "A",   t(la1),   2)}
+                        ${row("Line 2 Voltage",  fmtP(homeL2V),   "V",   t(ch2),   2)}                        
+                        ${row("Line 2 Amperage",  fmtP(homeL2A),   "A",   t(la2),   2)}
                       </div>
                     </div>
                         `;
@@ -3353,6 +3416,9 @@ custom_fields:
           dismissable: true
           size: normal
           style: >
+
+            ha-dialog .mdc-dialog__content { padding: 0 !important; } ha-dialog
+            .mdc-dialog__surface { background: transparent !important; }
             ha-dialog::part(header) { display: none !important; }
 
             browser-mod-popup::part(header) { display: none !important; }
@@ -3366,6 +3432,12 @@ custom_fields:
                 margin: 0 !important; width: 100vw !important; max-width: 100vw !important; border-radius: 26px 26px 0 0 !important;
                     }
                   }
+          uix:
+            style:
+              ha-dialog $ wa-dialog $: |
+                ha-dialog-header { display: none !important; }
+                header { display: none !important; }
+                .dialog__panel { padding: 0 !important; }
           content:
             type: custom:button-card
             triggers_update:
@@ -3441,6 +3513,10 @@ custom_fields:
 
                   return `
                     <style>
+                      /* --- Popup header compact + remove big white area --- */
+                      .wrap{background: rgba(15,20,24,0.94) !important; padding: 12px !important; border-radius: 22px !important; gap: 10px !important;}
+                      .title{margin: 0 0 8px 0 !important; font-size: 18px !important; font-weight: 800 !important; letter-spacing: .3px !important; color: #fff !important; text-align: center !important; width: 100% !important;}
+
                       .wrap{display:flex;flex-direction:column;gap:10px;}
                       .title{font-weight:900;letter-spacing:.3px;font-size:14px;color:#fff;text-shadow:0 0 10px rgba(255,255,255,0.22);}
                                                   :root{--popup-width:380px;}
@@ -3934,6 +4010,9 @@ custom_fields:
           dismissable: true
           size: normal
           style: >
+
+            ha-dialog .mdc-dialog__content { padding: 0 !important; } ha-dialog
+            .mdc-dialog__surface { background: transparent !important; }
             ha-dialog::part(header) { display: none !important; }
 
             browser-mod-popup::part(header) { display: none !important; }
@@ -3947,6 +4026,12 @@ custom_fields:
                 margin: 0 !important; width: 100vw !important; max-width: 100vw !important; border-radius: 26px 26px 0 0 !important;
                     }
                   }
+          uix:
+            style:
+              ha-dialog $ wa-dialog $: |
+                ha-dialog-header { display: none !important; }
+                header { display: none !important; }
+                .dialog__panel { padding: 0 !important; }
           content:
             type: custom:button-card
             triggers_update:
@@ -4015,6 +4100,10 @@ custom_fields:
 
                   return `
                     <style>
+                      /* --- Popup header compact + remove big white area --- */
+                      .wrap{background: rgba(15,20,24,0.94) !important; padding: 12px !important; border-radius: 22px !important; gap: 10px !important;}
+                      .title{margin: 0 0 8px 0 !important; font-size: 18px !important; font-weight: 800 !important; letter-spacing: .3px !important; color: #fff !important; text-align: center !important; width: 100% !important;}
+
                       .wrap{display:flex;flex-direction:column;gap:10px;}
                       .title{font-weight:900;letter-spacing:.3px;font-size:14px;color:#fff;text-shadow:0 0 10px rgba(255,255,255,0.22);}
                                                   :root{--popup-width:380px;}
@@ -4424,7 +4513,6 @@ custom_fields:
                     <div class="wrap">
                       <div class="title">Inverter Status / Alarm</div>
                       <div class="grid">
-                        ${row("DER Alarm Active", der, 0)}
                         ${row("Fault Alarm", fault, 1)}
                       </div>
                     </div>
