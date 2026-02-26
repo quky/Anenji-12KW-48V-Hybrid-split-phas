@@ -145,7 +145,7 @@ custom_fields:
       const showGrid = Math.max(gridIn, gridOut) > GRID_TH;
 
       const batDir  = battP >= 0 ? 'charge' : 'discharge';
-      const gridDir = (gridOut > GRID_TH && gridOut >= gridIn) ? 'export' : 'import';
+      const gridDir = (gridOut > GRID_TH && gridOut >= gridIn) ? 'import' : 'export';
 
       // formatters
       const fmtV = (v) => `${(Number.isFinite(v) ? v.toFixed(1) : 0)} V`;
@@ -394,7 +394,7 @@ custom_fields:
               <circle cx="${X_C}" cy="${Y_C+SHIFT_Y}" r="9" fill="rgba(255,0,0,0.65)"/>
             ` : '';
 
-      const gridFlowDir = (gridDir === "import") ? "fwd" : "rev";
+      const gridFlowDir = (gridDir === "import") ? "rev" : "fwd";
       const batFlowDir  = (batDir  === "charge") ? "rev" : "fwd";
 
       return `
@@ -910,6 +910,26 @@ custom_fields:
                   }
           content:
             type: custom:button-card
+            triggers_update:
+              - binary_sensor.anenji_inverter_der_alarm_active
+              - sensor.anenji_inverter_battery_charge_power
+              - sensor.anenji_inverter_battery_current
+              - sensor.anenji_inverter_battery_power_signed
+              - sensor.anenji_inverter_battery_soc
+              - sensor.anenji_inverter_battery_voltage
+              - sensor.anenji_inverter_fault_alarm
+              - sensor.anenji_inverter_grid_export_power_filtered
+              - sensor.anenji_inverter_grid_import_power_filtered
+              - sensor.anenji_inverter_load_power_total_output
+              - sensor.anenji_inverter_pv1_current
+              - sensor.anenji_inverter_pv1_power
+              - sensor.anenji_inverter_pv1_voltage
+              - sensor.anenji_inverter_pv2_current
+              - sensor.anenji_inverter_pv2_power
+              - sensor.anenji_inverter_pv2_voltage
+              - sensor.shellyem_c4d8d500468f_channel_1_power
+              - sensor.shellyem_c4d8d500468f_channel_2_power
+            update_interval: 1
             show_name: false
             show_icon: false
             show_state: false
@@ -1564,6 +1584,26 @@ custom_fields:
                   }
           content:
             type: custom:button-card
+            triggers_update:
+              - binary_sensor.anenji_inverter_der_alarm_active
+              - sensor.anenji_inverter_battery_charge_power
+              - sensor.anenji_inverter_battery_current
+              - sensor.anenji_inverter_battery_power_signed
+              - sensor.anenji_inverter_battery_soc
+              - sensor.anenji_inverter_battery_voltage
+              - sensor.anenji_inverter_fault_alarm
+              - sensor.anenji_inverter_grid_export_power_filtered
+              - sensor.anenji_inverter_grid_import_power_filtered
+              - sensor.anenji_inverter_load_power_total_output
+              - sensor.anenji_inverter_pv1_current
+              - sensor.anenji_inverter_pv1_power
+              - sensor.anenji_inverter_pv1_voltage
+              - sensor.anenji_inverter_pv2_current
+              - sensor.anenji_inverter_pv2_power
+              - sensor.anenji_inverter_pv2_voltage
+              - sensor.shellyem_c4d8d500468f_channel_1_power
+              - sensor.shellyem_c4d8d500468f_channel_2_power
+            update_interval: 1
             show_name: false
             show_icon: false
             show_state: false
@@ -2142,6 +2182,26 @@ custom_fields:
                   }
           content:
             type: custom:button-card
+            triggers_update:
+              - binary_sensor.anenji_inverter_der_alarm_active
+              - sensor.anenji_inverter_battery_charge_power
+              - sensor.anenji_inverter_battery_current
+              - sensor.anenji_inverter_battery_power_signed
+              - sensor.anenji_inverter_battery_soc
+              - sensor.anenji_inverter_battery_voltage
+              - sensor.anenji_inverter_fault_alarm
+              - sensor.anenji_inverter_grid_export_power_filtered
+              - sensor.anenji_inverter_grid_import_power_filtered
+              - sensor.anenji_inverter_load_power_total_output
+              - sensor.anenji_inverter_pv1_current
+              - sensor.anenji_inverter_pv1_power
+              - sensor.anenji_inverter_pv1_voltage
+              - sensor.anenji_inverter_pv2_current
+              - sensor.anenji_inverter_pv2_power
+              - sensor.anenji_inverter_pv2_voltage
+              - sensor.shellyem_c4d8d500468f_channel_1_power
+              - sensor.shellyem_c4d8d500468f_channel_2_power
+            update_interval: 1
             show_name: false
             show_icon: false
             show_state: false
@@ -2653,8 +2713,8 @@ custom_fields:
                     <div class="wrap">
                       <div class="title">Grid</div>
                       <div class="grid">
-                        ${row("Grid Import", fmtP(gridIn), unitP(gridIn), t(gridIn), 0)}
-                        ${row("Grid Export", fmtP(gridOut), unitP(gridOut), t(gridOut), 1)}
+                        ${row("Grid Export", fmtP(gridIn), unitP(gridIn), t(gridIn), 0)}
+                        ${row("Grid Import", fmtP(gridOut), unitP(gridOut), t(gridOut), 1)}
                         <div class="row" data-i="2">
                           <div class="name">Grid Voltage</div>
                           <div class="val" style="color:rgba(255,255,255,0.92); text-shadow:0 0 6px rgba(255,255,255,0.18);">${fmtV(acV)}</div>
@@ -2710,6 +2770,26 @@ custom_fields:
                   }
           content:
             type: custom:button-card
+            triggers_update:
+              - binary_sensor.anenji_inverter_der_alarm_active
+              - sensor.anenji_inverter_battery_charge_power
+              - sensor.anenji_inverter_battery_current
+              - sensor.anenji_inverter_battery_power_signed
+              - sensor.anenji_inverter_battery_soc
+              - sensor.anenji_inverter_battery_voltage
+              - sensor.anenji_inverter_fault_alarm
+              - sensor.anenji_inverter_grid_export_power_filtered
+              - sensor.anenji_inverter_grid_import_power_filtered
+              - sensor.anenji_inverter_load_power_total_output
+              - sensor.anenji_inverter_pv1_current
+              - sensor.anenji_inverter_pv1_power
+              - sensor.anenji_inverter_pv1_voltage
+              - sensor.anenji_inverter_pv2_current
+              - sensor.anenji_inverter_pv2_power
+              - sensor.anenji_inverter_pv2_voltage
+              - sensor.shellyem_c4d8d500468f_channel_1_power
+              - sensor.shellyem_c4d8d500468f_channel_2_power
+            update_interval: 1
             show_name: false
             show_icon: false
             show_state: false
@@ -3273,6 +3353,26 @@ custom_fields:
                   }
           content:
             type: custom:button-card
+            triggers_update:
+              - binary_sensor.anenji_inverter_der_alarm_active
+              - sensor.anenji_inverter_battery_charge_power
+              - sensor.anenji_inverter_battery_current
+              - sensor.anenji_inverter_battery_power_signed
+              - sensor.anenji_inverter_battery_soc
+              - sensor.anenji_inverter_battery_voltage
+              - sensor.anenji_inverter_fault_alarm
+              - sensor.anenji_inverter_grid_export_power_filtered
+              - sensor.anenji_inverter_grid_import_power_filtered
+              - sensor.anenji_inverter_load_power_total_output
+              - sensor.anenji_inverter_pv1_current
+              - sensor.anenji_inverter_pv1_power
+              - sensor.anenji_inverter_pv1_voltage
+              - sensor.anenji_inverter_pv2_current
+              - sensor.anenji_inverter_pv2_power
+              - sensor.anenji_inverter_pv2_voltage
+              - sensor.shellyem_c4d8d500468f_channel_1_power
+              - sensor.shellyem_c4d8d500468f_channel_2_power
+            update_interval: 1
             show_name: false
             show_icon: false
             show_state: false
@@ -3834,6 +3934,26 @@ custom_fields:
                   }
           content:
             type: custom:button-card
+            triggers_update:
+              - binary_sensor.anenji_inverter_der_alarm_active
+              - sensor.anenji_inverter_battery_charge_power
+              - sensor.anenji_inverter_battery_current
+              - sensor.anenji_inverter_battery_power_signed
+              - sensor.anenji_inverter_battery_soc
+              - sensor.anenji_inverter_battery_voltage
+              - sensor.anenji_inverter_fault_alarm
+              - sensor.anenji_inverter_grid_export_power_filtered
+              - sensor.anenji_inverter_grid_import_power_filtered
+              - sensor.anenji_inverter_load_power_total_output
+              - sensor.anenji_inverter_pv1_current
+              - sensor.anenji_inverter_pv1_power
+              - sensor.anenji_inverter_pv1_voltage
+              - sensor.anenji_inverter_pv2_current
+              - sensor.anenji_inverter_pv2_power
+              - sensor.anenji_inverter_pv2_voltage
+              - sensor.shellyem_c4d8d500468f_channel_1_power
+              - sensor.shellyem_c4d8d500468f_channel_2_power
+            update_interval: 1
             show_name: false
             show_icon: false
             show_state: false
@@ -4289,6 +4409,7 @@ custom_fields:
                     <div class="wrap">
                       <div class="title">Inverter Status / Alarm</div>
                       <div class="grid">
+                        ${row("DER Alarm Active", der, 0)}
                         ${row("Fault Alarm", fault, 1)}
                       </div>
                     </div>
