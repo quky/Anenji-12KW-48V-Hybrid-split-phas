@@ -145,7 +145,7 @@ custom_fields:
       const showGrid = Math.max(gridIn, gridOut) > GRID_TH;
 
       const batDir  = battP >= 0 ? 'charge' : 'discharge';
-      const gridDir = (gridOut > GRID_TH && gridOut >= gridIn) ? 'import' : 'export';
+      const gridDir = (gridOut > GRID_TH && gridOut >= gridIn) ? 'export' : 'import';
 
       // formatters
       const fmtV = (v) => `${(Number.isFinite(v) ? v.toFixed(1) : 0)} V`;
@@ -2713,8 +2713,8 @@ custom_fields:
                     <div class="wrap">
                       <div class="title">Grid</div>
                       <div class="grid">
-                        ${row("Grid Export", fmtP(gridIn), unitP(gridIn), t(gridIn), 0)}
-                        ${row("Grid Import", fmtP(gridOut), unitP(gridOut), t(gridOut), 1)}
+                        ${row("Grid Import", fmtP(gridIn), unitP(gridIn), t(gridIn), 0)}
+                        ${row("Grid Export", fmtP(gridOut), unitP(gridOut), t(gridOut), 1)}
                         <div class="row" data-i="2">
                           <div class="name">Grid Voltage</div>
                           <div class="val" style="color:rgba(255,255,255,0.92); text-shadow:0 0 6px rgba(255,255,255,0.18);">${fmtV(acV)}</div>
