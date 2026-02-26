@@ -145,7 +145,7 @@ custom_fields:
       const showGrid = Math.max(gridIn, gridOut) > GRID_TH;
 
       const batDir  = battP >= 0 ? 'charge' : 'discharge';
-      const gridDir = (gridOut > GRID_TH && gridOut >= gridIn) ? 'export' : 'import';
+      const gridDir = (gridOut > GRID_TH && gridOut >= gridIn) ? 'import' : 'export';
 
       // formatters
       const fmtV = (v) => `${(Number.isFinite(v) ? v.toFixed(1) : 0)} V`;
@@ -225,9 +225,22 @@ custom_fields:
 
         const MAX_W = 3200;
         const MIN_W = 40;
-        const w = Math.abs(watts);
+        // Smooth watts so animation speed doesn't jitter when sensors update
+        const wRaw = Math.abs(watts);
+        const now = Date.now();
+        window.__anenjiFlowSmooth = window.__anenjiFlowSmooth || {};
+        const st = window.__anenjiFlowSmooth[pathId] || (window.__anenjiFlowSmooth[pathId] = { w: wRaw, ts: now });
+
+        const dt = Math.min(2000, Math.max(0, now - st.ts)); // ms
+        const tau = (variables && variables.FLOW_SMOOTH_TAU_MS) ? Number(variables.FLOW_SMOOTH_TAU_MS) : 650; // ms
+        const alpha = tau > 0 ? (1 - Math.exp(-dt / tau)) : 1;
+
+        const w = st.w + alpha * (wRaw - st.w);
+        st.w = w; st.ts = now;
+
         const t0 = clamp((w - MIN_W) / (MAX_W - MIN_W), 0, 1);
-        const t = Math.pow(t0, 0.65);
+        const curve = (variables && variables.FLOW_SPEED_CURVE) ? Number(variables.FLOW_SPEED_CURVE) : 0.72;
+        const t = Math.pow(t0, curve);
 
         // visuals
         const fs = (5.2 + 2.6 * t);
@@ -235,7 +248,9 @@ custom_fields:
         const ls = (-0.06 - 1.05 * t);
 
         // slower overall
-        const dur = Math.max(2.2, (baseDur * 2.25) - (0.9 * t));
+        const durMax = (variables && variables.FLOW_DUR_MAX) ? Number(variables.FLOW_DUR_MAX) : (baseDur * 2.6);
+        const durMin = (variables && variables.FLOW_DUR_MIN) ? Number(variables.FLOW_DUR_MIN) : 1.8;
+        const dur = Math.max(durMin, durMax - (durMax - durMin) * t);
 
         const chevs =
           "❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯❯";
