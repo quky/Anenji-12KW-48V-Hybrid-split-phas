@@ -341,7 +341,6 @@ sensor:
     filters:
       - multiply: 0.1
 
-
   - platform: modbus_controller
     modbus_controller_id: inv
     id: out_hz
@@ -403,17 +402,7 @@ sensor:
     filters:
       - multiply: 0.001
 
-
   # -------- PHASE POWER DETAILS --------
-  - platform: modbus_controller
-    modbus_controller_id: inv
-    id: out_w_l1
-    name: "Output Active Power L1"
-    address: 0x754C
-    register_type: holding
-    value_type: S_WORD
-    unit_of_measurement: "W"
-
   - platform: modbus_controller
     modbus_controller_id: inv
     id: out_va_l1
@@ -443,7 +432,7 @@ sensor:
 
   - platform: modbus_controller
     modbus_controller_id: inv
-    id: inverter_current_l2
+    id: inverter_inductor_current_l2
     name: "Inverter Inductor Current L2"
     address: 0x7552
     register_type: holding
@@ -488,6 +477,7 @@ sensor:
     register_type: holding
     value_type: S_WORD
     unit_of_measurement: "W"
+
 
 
   # -------- MAINS / GRID MEASUREMENTS (V/I/Hz) --------
@@ -604,7 +594,7 @@ sensor:
     lambda: |-
       float v = id(grid_power_signed).state;
       if (isnan(v)) return NAN;
-      return (v < 0) ? (-v) : 0;
+      return (v > 0) ? v : 0;
 
   - platform: template
     id: grid_export
@@ -615,7 +605,7 @@ sensor:
     lambda: |-
       float v = id(grid_power_signed).state;
       if (isnan(v)) return NAN;
-      return (v > 0) ? v : 0;
+      return (v < 0) ? (-v) : 0;
 
   - platform: template
     id: grid_import_filtered
@@ -661,38 +651,71 @@ sensor:
   - platform: modbus_controller
     modbus_controller_id: inv
     id: inv_temp_1_c
+    name: "PV Temp"
+    entity_category: diagnostic
+    device_class: temperature
+    state_class: measurement
     address: 0x7579
     register_type: holding
     value_type: S_WORD
+    unit_of_measurement: "°F"
+    accuracy_decimals: 1
     filters:
       - multiply: 0.1
-
+      - lambda: |-
+          // register is 0.1°C
+          return (x * 9.0f / 5.0f) + 32.0f;
   - platform: modbus_controller
     modbus_controller_id: inv
     id: inv_temp_2_c
+    name: "Inverter Temp"
+    entity_category: diagnostic
+    device_class: temperature
+    state_class: measurement
     address: 0x757A
     register_type: holding
     value_type: S_WORD
+    unit_of_measurement: "°F"
+    accuracy_decimals: 1
     filters:
       - multiply: 0.1
-
+      - lambda: |-
+          // register is 0.1°C
+          return (x * 9.0f / 5.0f) + 32.0f;
   - platform: modbus_controller
     modbus_controller_id: inv
     id: inv_temp_3_c
+    name: "Transformer Temp"
+    entity_category: diagnostic
+    device_class: temperature
+    state_class: measurement
     address: 0x757B
     register_type: holding
     value_type: S_WORD
+    unit_of_measurement: "°F"
+    accuracy_decimals: 1
     filters:
       - multiply: 0.1
-
+      - lambda: |-
+          // register is 0.1°C
+          return (x * 9.0f / 5.0f) + 32.0f;
   - platform: modbus_controller
     modbus_controller_id: inv
     id: inv_temp_4_c
+    name: "Envir Temp"
+    entity_category: diagnostic
+    device_class: temperature
+    state_class: measurement
     address: 0x757C
     register_type: holding
     value_type: S_WORD
+    unit_of_measurement: "°F"
+    accuracy_decimals: 1
     filters:
       - multiply: 0.1
+      - lambda: |-
+          // register is 0.1°C
+          return (x * 9.0f / 5.0f) + 32.0f;
 
   - platform: modbus_controller
     modbus_controller_id: inv
@@ -703,6 +726,89 @@ sensor:
     internal: true
 # BINARY SENSORS
 # ===============================
+  # -------- DEVICE INFO / FIRMWARE --------
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: hwver_m1
+    name: "HwVer_M1"
+    internal: true
+    entity_category: diagnostic
+    address: 0xC764
+    register_type: holding
+    value_type: U_WORD
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: hwver_m2
+    name: "HwVer_M2"
+    internal: true
+    entity_category: diagnostic
+    address: 0xC765
+    register_type: holding
+    value_type: U_WORD
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: hwver_s1
+    name: "HwVer_S1"
+    internal: true
+    entity_category: diagnostic
+    address: 0xC766
+    register_type: holding
+    value_type: U_WORD
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: libver_1
+    name: "LibVer"
+    internal: true
+    entity_category: diagnostic
+    address: 0xC76A
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 2
+
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: bus_voltage_positive
+    name: "Bus Voltage Positive"
+    entity_category: diagnostic
+    device_class: voltage
+    state_class: measurement
+    address: 0x7577
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "V"
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: bus_voltage_negative
+    name: "Bus Voltage Negative"
+    entity_category: diagnostic
+    device_class: voltage
+    state_class: measurement
+    address: 0x7578
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "V"
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: rated_active_power
+    name: "Rated Active Power"
+    entity_category: diagnostic
+    address: 0xC7B4
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "W"
+
 binary_sensor:
   - platform: template
     id: inverter_modbus_ok
@@ -816,6 +922,90 @@ text_sensor:
 # ===============================
 # PERIODIC ENFORCEMENT
 # ===============================
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: manufacturer_name
+    name: "Manufacturer Name"
+    entity_category: diagnostic
+    icon: mdi:information-outline
+    address: 0xC73A
+    register_type: holding
+    register_count: 12
+    response_size: 24
+    raw_encode: ANSI
+    filters:
+      - lambda: |-
+          std::string s = x;
+          s.erase(std::remove(s.begin(), s.end(), '\0'), s.end());
+          while (!s.empty() && isspace((unsigned char)s.back())) s.pop_back();
+          while (!s.empty() && isspace((unsigned char)s.front())) s.erase(s.begin());
+          return s;
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: product_serial_number
+    name: "Product Serial Number"
+    entity_category: diagnostic
+    icon: mdi:barcode
+    address: 0xC746
+    register_type: holding
+    register_count: 30
+    response_size: 60
+    raw_encode: ANSI
+    filters:
+      - lambda: |-
+          std::string s = x;
+          s.erase(std::remove(s.begin(), s.end(), '\0'), s.end());
+          while (!s.empty() && isspace((unsigned char)s.back())) s.pop_back();
+          while (!s.empty() && isspace((unsigned char)s.front())) s.erase(s.begin());
+          return s;
+
+  # -------- PRETTY VERSION STRINGS (avoid float display noise in HA) --------
+  - platform: template
+    name: "HwVer_M1"
+    id: hwver_m1_pretty
+    entity_category: diagnostic
+    icon: mdi:chip
+    update_interval: 30s
+    lambda: |-
+      char buf[16];
+      snprintf(buf, sizeof(buf), "%.2f", id(hwver_m1).state / 100.0f);
+      return std::string(buf);
+
+  - platform: template
+    name: "HwVer_M2"
+    id: hwver_m2_pretty
+    entity_category: diagnostic
+    icon: mdi:chip
+    update_interval: 30s
+    lambda: |-
+      char buf[16];
+      snprintf(buf, sizeof(buf), "%.2f", id(hwver_m2).state / 100.0f);
+      return std::string(buf);
+
+  - platform: template
+    name: "HwVer_S1"
+    id: hwver_s1_pretty
+    entity_category: diagnostic
+    icon: mdi:chip
+    update_interval: 30s
+    lambda: |-
+      char buf[16];
+      snprintf(buf, sizeof(buf), "%.2f", id(hwver_s1).state / 100.0f);
+      return std::string(buf);
+
+  - platform: template
+    name: "LibVer"
+    id: libver_1_pretty
+    entity_category: diagnostic
+    icon: mdi:book-open-page-variant
+    update_interval: 30s
+    lambda: |-
+      char buf[16];
+      snprintf(buf, sizeof(buf), "%.2f", id(libver_1).state / 100.0f);
+      return std::string(buf);
+
 interval:
   - interval: 10min
     then:
