@@ -910,51 +910,79 @@ custom_fields:
           service: browser_mod.popup
           data:
             hide_header: true
-            title: "PV"
+            title: PV
             timeout: 0
             dismissable: true
             size: normal
-            style: |
+            style: >
               /* OUTER popup surface = WHITE */
+
               ha-dialog::part(surface),
+
               .mdc-dialog__surface,
+
               wa-dialog::part(panel),
+
               .dialog__panel {
                 background: #ffffff !important;
                 border-radius: 26px !important;
               }
 
-              /* Nuke native header/close if it still appears (BM 2.8 beta quirk) */
+
+              /* Nuke native header/close if it still appears (BM 2.8 beta
+              quirk) */
+
               ha-dialog::part(header),
+
               ha-dialog::part(close-button),
+
               .mdc-dialog__header,
+
               button[dialogAction="close"],
+
               button[aria-label="Close"] {
                 display: none !important;
               }
 
-              /* INNER content area = DARK (this is the big one for your case) */
+
+              /* INNER content area = DARK (this is the big one for your case)
+              */
+
               ha-dialog .mdc-dialog__content,
+
               ha-dialog .dialog__content,
+
               ha-dialog .content,
+
               ha-dialog browser-mod-popup,
+
               ha-dialog browser-mod-popup > * {
                 background: rgba(15,20,24,0.96) !important;
               }
 
+
               /* Entities/cards inside = DARK */
+
               ha-dialog ha-card,
+
               ha-dialog .card,
+
               ha-dialog .card-content,
+
               ha-dialog hui-card {
                 background: rgba(15,20,24,0.96) !important;
                 border-radius: 18px !important;
               }
 
+
               /* White text/icons inside */
+
               ha-dialog .mdc-dialog__content,
+
               ha-dialog .mdc-dialog__content *,
+
               ha-dialog browser-mod-popup,
+
               ha-dialog browser-mod-popup * {
                 color: rgba(255,255,255,0.92) !important;
                 --primary-text-color: rgba(255,255,255,0.92) !important;
@@ -962,11 +990,17 @@ custom_fields:
                 --paper-item-icon-color: rgba(180,220,255,0.95) !important;
               }
 
+
               /* Layering */
+
               ha-dialog,
+
               .mdc-dialog,
+
               .mdc-dialog__container,
+
               wa-dialog,
+
               .dialog__panel {
                 z-index: 999999 !important;
               }
@@ -1086,51 +1120,79 @@ custom_fields:
           service: browser_mod.popup
           data:
             hide_header: false
-            title: "Battery"
+            title: Battery
             timeout: 0
             dismissable: true
             size: normal
-            style: |
+            style: >
               /* OUTER popup surface = WHITE */
+
               ha-dialog::part(surface),
+
               .mdc-dialog__surface,
+
               wa-dialog::part(panel),
+
               .dialog__panel {
                 background: #ffffff !important;
                 border-radius: 26px !important;
               }
 
-              /* Nuke native header/close if it still appears (BM 2.8 beta quirk) */
+
+              /* Nuke native header/close if it still appears (BM 2.8 beta
+              quirk) */
+
               ha-dialog::part(header),
+
               ha-dialog::part(close-button),
+
               .mdc-dialog__header,
+
               button[dialogAction="close"],
+
               button[aria-label="Close"] {
                 display: none !important;
               }
 
-              /* INNER content area = DARK (this is the big one for your case) */
+
+              /* INNER content area = DARK (this is the big one for your case)
+              */
+
               ha-dialog .mdc-dialog__content,
+
               ha-dialog .dialog__content,
+
               ha-dialog .content,
+
               ha-dialog browser-mod-popup,
+
               ha-dialog browser-mod-popup > * {
                 background: rgba(15,20,24,0.96) !important;
               }
 
+
               /* Entities/cards inside = DARK */
+
               ha-dialog ha-card,
+
               ha-dialog .card,
+
               ha-dialog .card-content,
+
               ha-dialog hui-card {
                 background: rgba(15,20,24,0.96) !important;
                 border-radius: 18px !important;
               }
 
+
               /* White text/icons inside */
+
               ha-dialog .mdc-dialog__content,
+
               ha-dialog .mdc-dialog__content *,
+
               ha-dialog browser-mod-popup,
+
               ha-dialog browser-mod-popup * {
                 color: rgba(255,255,255,0.92) !important;
                 --primary-text-color: rgba(255,255,255,0.92) !important;
@@ -1138,11 +1200,17 @@ custom_fields:
                 --paper-item-icon-color: rgba(180,220,255,0.95) !important;
               }
 
+
               /* Layering */
+
               ha-dialog,
+
               .mdc-dialog,
+
               .mdc-dialog__container,
+
               wa-dialog,
+
               .dialog__panel {
                 z-index: 999999 !important;
               }
@@ -1258,51 +1326,79 @@ custom_fields:
           service: browser_mod.popup
           data:
             hide_header: false
-            title: "Grid"
+            title: Grid
             timeout: 0
             dismissable: true
             size: normal
-            style: |
+            style: >
               /* OUTER popup surface = WHITE */
+
               ha-dialog::part(surface),
+
               .mdc-dialog__surface,
+
               wa-dialog::part(panel),
+
               .dialog__panel {
                 background: #ffffff !important;
                 border-radius: 26px !important;
               }
 
-              /* Nuke native header/close if it still appears (BM 2.8 beta quirk) */
+
+              /* Nuke native header/close if it still appears (BM 2.8 beta
+              quirk) */
+
               ha-dialog::part(header),
+
               ha-dialog::part(close-button),
+
               .mdc-dialog__header,
+
               button[dialogAction="close"],
+
               button[aria-label="Close"] {
                 display: none !important;
               }
 
-              /* INNER content area = DARK (this is the big one for your case) */
+
+              /* INNER content area = DARK (this is the big one for your case)
+              */
+
               ha-dialog .mdc-dialog__content,
+
               ha-dialog .dialog__content,
+
               ha-dialog .content,
+
               ha-dialog browser-mod-popup,
+
               ha-dialog browser-mod-popup > * {
                 background: rgba(15,20,24,0.96) !important;
               }
 
+
               /* Entities/cards inside = DARK */
+
               ha-dialog ha-card,
+
               ha-dialog .card,
+
               ha-dialog .card-content,
+
               ha-dialog hui-card {
                 background: rgba(15,20,24,0.96) !important;
                 border-radius: 18px !important;
               }
 
+
               /* White text/icons inside */
+
               ha-dialog .mdc-dialog__content,
+
               ha-dialog .mdc-dialog__content *,
+
               ha-dialog browser-mod-popup,
+
               ha-dialog browser-mod-popup * {
                 color: rgba(255,255,255,0.92) !important;
                 --primary-text-color: rgba(255,255,255,0.92) !important;
@@ -1310,11 +1406,17 @@ custom_fields:
                 --paper-item-icon-color: rgba(180,220,255,0.95) !important;
               }
 
+
               /* Layering */
+
               ha-dialog,
+
               .mdc-dialog,
+
               .mdc-dialog__container,
+
               wa-dialog,
+
               .dialog__panel {
                 z-index: 999999 !important;
               }
@@ -1432,51 +1534,79 @@ custom_fields:
           service: browser_mod.popup
           data:
             hide_header: false
-            title: "Home"
+            title: Home
             timeout: 0
             dismissable: true
             size: normal
-            style: |
+            style: >
               /* OUTER popup surface = WHITE */
+
               ha-dialog::part(surface),
+
               .mdc-dialog__surface,
+
               wa-dialog::part(panel),
+
               .dialog__panel {
                 background: #ffffff !important;
                 border-radius: 26px !important;
               }
 
-              /* Nuke native header/close if it still appears (BM 2.8 beta quirk) */
+
+              /* Nuke native header/close if it still appears (BM 2.8 beta
+              quirk) */
+
               ha-dialog::part(header),
+
               ha-dialog::part(close-button),
+
               .mdc-dialog__header,
+
               button[dialogAction="close"],
+
               button[aria-label="Close"] {
                 display: none !important;
               }
 
-              /* INNER content area = DARK (this is the big one for your case) */
+
+              /* INNER content area = DARK (this is the big one for your case)
+              */
+
               ha-dialog .mdc-dialog__content,
+
               ha-dialog .dialog__content,
+
               ha-dialog .content,
+
               ha-dialog browser-mod-popup,
+
               ha-dialog browser-mod-popup > * {
                 background: rgba(15,20,24,0.96) !important;
               }
 
+
               /* Entities/cards inside = DARK */
+
               ha-dialog ha-card,
+
               ha-dialog .card,
+
               ha-dialog .card-content,
+
               ha-dialog hui-card {
                 background: rgba(15,20,24,0.96) !important;
                 border-radius: 18px !important;
               }
 
+
               /* White text/icons inside */
+
               ha-dialog .mdc-dialog__content,
+
               ha-dialog .mdc-dialog__content *,
+
               ha-dialog browser-mod-popup,
+
               ha-dialog browser-mod-popup * {
                 color: rgba(255,255,255,0.92) !important;
                 --primary-text-color: rgba(255,255,255,0.92) !important;
@@ -1484,11 +1614,17 @@ custom_fields:
                 --paper-item-icon-color: rgba(180,220,255,0.95) !important;
               }
 
+
               /* Layering */
+
               ha-dialog,
+
               .mdc-dialog,
+
               .mdc-dialog__container,
+
               wa-dialog,
+
               .dialog__panel {
                 z-index: 999999 !important;
               }
@@ -1606,51 +1742,79 @@ custom_fields:
           service: browser_mod.popup
           data:
             hide_header: false
-            title: "DC/AC"
+            title: DC/AC
             timeout: 0
             dismissable: true
             size: normal
-            style: |
+            style: >
               /* OUTER popup surface = WHITE */
+
               ha-dialog::part(surface),
+
               .mdc-dialog__surface,
+
               wa-dialog::part(panel),
+
               .dialog__panel {
                 background: #ffffff !important;
                 border-radius: 26px !important;
               }
 
-              /* Nuke native header/close if it still appears (BM 2.8 beta quirk) */
+
+              /* Nuke native header/close if it still appears (BM 2.8 beta
+              quirk) */
+
               ha-dialog::part(header),
+
               ha-dialog::part(close-button),
+
               .mdc-dialog__header,
+
               button[dialogAction="close"],
+
               button[aria-label="Close"] {
                 display: none !important;
               }
 
-              /* INNER content area = DARK (this is the big one for your case) */
+
+              /* INNER content area = DARK (this is the big one for your case)
+              */
+
               ha-dialog .mdc-dialog__content,
+
               ha-dialog .dialog__content,
+
               ha-dialog .content,
+
               ha-dialog browser-mod-popup,
+
               ha-dialog browser-mod-popup > * {
                 background: rgba(15,20,24,0.96) !important;
               }
 
+
               /* Entities/cards inside = DARK */
+
               ha-dialog ha-card,
+
               ha-dialog .card,
+
               ha-dialog .card-content,
+
               ha-dialog hui-card {
                 background: rgba(15,20,24,0.96) !important;
                 border-radius: 18px !important;
               }
 
+
               /* White text/icons inside */
+
               ha-dialog .mdc-dialog__content,
+
               ha-dialog .mdc-dialog__content *,
+
               ha-dialog browser-mod-popup,
+
               ha-dialog browser-mod-popup * {
                 color: rgba(255,255,255,0.92) !important;
                 --primary-text-color: rgba(255,255,255,0.92) !important;
@@ -1658,11 +1822,17 @@ custom_fields:
                 --paper-item-icon-color: rgba(180,220,255,0.95) !important;
               }
 
+
               /* Layering */
+
               ha-dialog,
+
               .mdc-dialog,
+
               .mdc-dialog__container,
+
               wa-dialog,
+
               .dialog__panel {
                 z-index: 999999 !important;
               }
@@ -1725,6 +1895,8 @@ custom_fields:
                       name: Hardware version M2
                     - entity: sensor.anenji_inverter_hwver_s1_2
                       name: Hardware version S1
+                    - entity: sensor.anenji_inverter_libver_2
+                      name: Library Version
                     - entity: sensor.anenji_inverter_bus_voltage_positive
                       name: Bus Voltage pasitive
                     - entity: sensor.anenji_inverter_bus_voltage_negative
@@ -1792,51 +1964,79 @@ custom_fields:
           service: browser_mod.popup
           data:
             hide_header: false
-            title: "Alarm"
+            title: Alarm
             timeout: 0
             dismissable: true
             size: normal
-            style: |
+            style: >
               /* OUTER popup surface = WHITE */
+
               ha-dialog::part(surface),
+
               .mdc-dialog__surface,
+
               wa-dialog::part(panel),
+
               .dialog__panel {
                 background: #ffffff !important;
                 border-radius: 26px !important;
               }
 
-              /* Nuke native header/close if it still appears (BM 2.8 beta quirk) */
+
+              /* Nuke native header/close if it still appears (BM 2.8 beta
+              quirk) */
+
               ha-dialog::part(header),
+
               ha-dialog::part(close-button),
+
               .mdc-dialog__header,
+
               button[dialogAction="close"],
+
               button[aria-label="Close"] {
                 display: none !important;
               }
 
-              /* INNER content area = DARK (this is the big one for your case) */
+
+              /* INNER content area = DARK (this is the big one for your case)
+              */
+
               ha-dialog .mdc-dialog__content,
+
               ha-dialog .dialog__content,
+
               ha-dialog .content,
+
               ha-dialog browser-mod-popup,
+
               ha-dialog browser-mod-popup > * {
                 background: rgba(15,20,24,0.96) !important;
               }
 
+
               /* Entities/cards inside = DARK */
+
               ha-dialog ha-card,
+
               ha-dialog .card,
+
               ha-dialog .card-content,
+
               ha-dialog hui-card {
                 background: rgba(15,20,24,0.96) !important;
                 border-radius: 18px !important;
               }
 
+
               /* White text/icons inside */
+
               ha-dialog .mdc-dialog__content,
+
               ha-dialog .mdc-dialog__content *,
+
               ha-dialog browser-mod-popup,
+
               ha-dialog browser-mod-popup * {
                 color: rgba(255,255,255,0.92) !important;
                 --primary-text-color: rgba(255,255,255,0.92) !important;
@@ -1844,11 +2044,17 @@ custom_fields:
                 --paper-item-icon-color: rgba(180,220,255,0.95) !important;
               }
 
+
               /* Layering */
+
               ha-dialog,
+
               .mdc-dialog,
+
               .mdc-dialog__container,
+
               wa-dialog,
+
               .dialog__panel {
                 z-index: 999999 !important;
               }
@@ -1927,5 +2133,3 @@ custom_fields:
                   
                   /* Remove padding */
                   .dialog__panel,
-                  .dialog__content { padding: 0 !important; }}
-
