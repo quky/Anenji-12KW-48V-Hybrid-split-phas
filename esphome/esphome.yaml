@@ -1062,6 +1062,7 @@ number:
     modbus_controller_id: inv
     id: load_priority_raw
     name: "Load Priority Raw"
+    internal: true
     entity_category: diagnostic
     register_type: holding
     address: 0xA028
@@ -1075,6 +1076,7 @@ number:
     modbus_controller_id: inv
     id: charging_priority_raw
     name: "Charging Priority Raw"
+    internal: true
     entity_category: diagnostic
     register_type: holding
     address: 0xA02E
