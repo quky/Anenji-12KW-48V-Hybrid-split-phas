@@ -163,11 +163,6 @@ custom_fields:
         if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}kW`;
         return `${Math.round(n)}W`;
       };
-      // colors
-      const C_PV   = '#f5a623';
-      const C_GRID = '#4da3ff';
-      const C_BAT  = '#ff4ea1';
-      const C_HOME = '#34d3c6';
 
       const ALARM_C = '#ff3b30';
       const OK_C    = 'rgba(255,255,255,0.70)';
@@ -178,10 +173,9 @@ custom_fields:
       // soc gradient
       const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
 
-      // Total throughput (used to pulse DC/AC ring) — tune divisor if needed
       const totalThroughput = Math.abs(pvP) + Math.abs(gridP) + Math.abs(battP) + Math.abs(homeP);
       const tDc = clamp(totalThroughput / 6000, 0, 1);
-      const dcDur = (2.8 - 1.6 * tDc); // seconds (more throughput = faster pulse)
+      const dcDur = (2.8 - 1.6 * tDc);
       const dcSwMin = (1.1 + 0.4 * tDc);
       const dcSwMax = (1.2 + 1.8 * tDc);
       const dcOpMin = (0.50 + 0.15 * tDc);
@@ -192,9 +186,24 @@ custom_fields:
       const lerp = (a,b,t)=>a+(b-a)*t;
       const lerpColor=(c1,c2,t)=>{ const A=hexToRgb(c1),B=hexToRgb(c2); return rgbToHex({r:Math.round(lerp(A.r,B.r,t)),g:Math.round(lerp(A.g,B.g,t)),b:Math.round(lerp(A.b,B.b,t))}); };
 
-      const SOC = clamp(soc,0,100);
-      const socColor = (SOC<=50) ? lerpColor('#ff3b30','#ffd60a',SOC/50) : lerpColor('#ffd60a','#34c759',(SOC-50)/50);
+      const socPct = clamp(soc, 0, 100);
+      const socColor = (socPct <= 50)
+        ? lerpColor('#ff3b30', '#ffd60a', socPct / 50)
+        : lerpColor('#ffd60a', '#34c759', (socPct - 50) / 50);
 
+      const battStateColor =
+        socPct <= 15
+          ? '#ff3b30'
+          : Math.abs(battP) <= TH
+            ? 'rgba(180,190,210,0.55)'
+            : battP >= 0
+              ? '#2dd4bf'
+              : '#ff4ea1';
+      // colors
+      const C_PV   = '#f5a623';
+      const C_GRID = '#4da3ff';
+      const C_BAT  = battStateColor;
+      const C_HOME = '#34d3c6';
       // layout (SVG coordinates)
       const SHIFT_Y = 6;
 
@@ -346,7 +355,7 @@ custom_fields:
 
       const iconBattery = (cx, cy) => {
         const yTop=-7.0, yBot=7.3, h=(yBot-yTop);
-        const fillH = h*(SOC/100);
+        const fillH = h*(socPct/100);
         const fillY = yBot - fillH;
         return `
                 <g transform="translate(${cx} ${cy}) scale(${ICON_SCALE})" opacity="0.95">
@@ -356,10 +365,10 @@ custom_fields:
                   <clipPath id="batClip"><rect x="-5.9" y="${yTop}" width="11.8" height="${h}" rx="1.8"/></clipPath>
                   <g clip-path="url(#batClip)">
                     <rect x="-5.9" y="${fillY}" width="11.8" height="${fillH}" rx="1.8"
-                    fill="${socColor}" opacity="0.55"
+                    fill="${battStateColor}" opacity="0.55"
                     style="${showBat ? 'animation:pulseFill 3.2s ease-in-out infinite;' : ''}"></rect>
                   </g>
-                  <text x="0" y="2.0" text-anchor="middle" style="${SOC_IN_STYLE}">${Math.round(SOC)}%</text>
+                  <text x="0" y="2.0" text-anchor="middle" style="${SOC_IN_STYLE}">${Math.round(socPct)}%</text>
                 </g>
               `;
             };
@@ -1130,20 +1139,16 @@ custom_fields:
                   entities:
                     - entity: sensor.pv_total_power
                       name: Total Solar Power
-
                     - type: section
                       label: PV String 1
-
                     - entity: sensor.anenji_inverter_pv1_power
                       name: PV1 Power
                     - entity: sensor.anenji_inverter_pv1_voltage
                       name: PV1 Voltage
                     - entity: sensor.anenji_inverter_pv1_current
                       name: PV1 Current
-
                     - type: section
                       label: PV String 2
-
                     - entity: sensor.anenji_inverter_pv2_power
                       name: PV2 Power
                     - entity: sensor.anenji_inverter_pv2_voltage
@@ -1350,16 +1355,12 @@ custom_fields:
                   entities:
                     - entity: sensor.battery_operating_mode
                       name: Battery State
-
                     - entity: sensor.anenji_inverter_battery_soc
                       name: Battery State of Charge
-
                     - entity: sensor.anenji_inverter_battery_power_signed
                       name: Battery Power (+ charge / - discharge)
-
                     - entity: sensor.anenji_inverter_battery_voltage
                       name: Battery Voltage
-
                     - entity: sensor.anenji_inverter_battery_current
                       name: Battery Current
           uix:
@@ -1984,7 +1985,6 @@ custom_fields:
                   entities:
                     - type: section
                       label: Temperatures
-
                     - entity: sensor.anenji_inverter_pv_temp
                       name: PV Temperature
                     - entity: sensor.anenji_inverter_inverter_temp
@@ -1993,20 +1993,16 @@ custom_fields:
                       name: Transformer Temperature
                     - entity: sensor.anenji_inverter_envir_temp
                       name: Ambient Temperature
-
                     - type: section
                       label: DC Bus
-
                     - entity: sensor.anenji_inverter_bus_voltage_positive
                       name: Bus Voltage Positive
                     - entity: sensor.anenji_inverter_bus_voltage_negative
                       name: Bus Voltage Negative
                     - entity: sensor.anenji_inverter_rated_active_power
                       name: Rated Power
-
                     - type: section
                       label: Device Info
-
                     - entity: sensor.anenji_inverter_product_serial_number
                       name: Serial Number
                     - entity: sensor.anenji_inverter_hwver_m1_2
