@@ -101,21 +101,24 @@ custom_fields:
 
       if (!hass || !hass.states) {
         return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.65);font-weight:700;">Loading…</div>`;
-            }
+      }
 
       // helpers
       const st  = (eid) => hass.states[eid]?.state;
       const num = (eid) => {
         const v = parseFloat(st(eid));
         return Number.isFinite(v) ? v : 0;
-            };
+      };
 
       // alarm
-      const derActiveRaw = st('binary_sensor.anenji_inverter_der_alarm_active') ?? 'off';
+      // alarm
+      const faultAlarmText = (st('sensor.anenji_inverter_fault_alarm') || '').trim();
       const isAlarm =
-        (String(derActiveRaw).toLowerCase() === 'on') ||
-        (String(derActiveRaw).toLowerCase() === 'true') ||
-        (String(derActiveRaw) === '1');
+        faultAlarmText !== '' &&
+        faultAlarmText.toLowerCase() !== 'none' &&
+        faultAlarmText.toLowerCase() !== 'normal' &&
+        faultAlarmText.toLowerCase() !== 'ok' &&
+        faultAlarmText.toLowerCase() !== 'unknown';
 
       // entities
       const pvP   = num('sensor.anenji_inverter_pv1_power');
@@ -128,13 +131,17 @@ custom_fields:
       const gridIn  = num('sensor.anenji_inverter_grid_import_power_filtered');
       const gridOut = num('sensor.anenji_inverter_grid_export_power_filtered');
 
-      const homeP = num('sensor.anenji_inverter_load_power_total_output');
-
-      // AC voltage (Shelly)
+      const gridSigned = num('sensor.anenji_inverter_grid_power_signed');
+      const homeP = num('sensor.house_load_ts_aware');
       const acV = num('sensor.shellyem_c4d8d500468f_channel_1_voltage');
 
-      // signed grid power display (negative export)
-      const gridP = (gridOut > gridIn) ? -gridOut : gridIn;
+      const tsGrid = hass.states['switch.transfer_switch_controller']?.state === 'on';
+      const modeText = tsGrid ? 'BYPASS' : 'INVERTING';
+
+      // UI convention: + = import, - = export
+      const gridP = -gridSigned;
+
+      const deltaP = Math.round(homeP - Math.abs(gridP));
 
       // thresholds
       const TH = 25;
@@ -143,15 +150,19 @@ custom_fields:
       const showPV   = pvP > TH;
       const showHome = Math.abs(homeP) > TH;
       const showBat  = Math.abs(battP) > TH;
-      const showGrid = Math.max(gridIn, gridOut) > GRID_TH;
+      const showGrid = Math.abs(gridSigned) > GRID_TH;
 
       const batDir  = battP >= 0 ? 'charge' : 'discharge';
-      const gridDir = (gridIn > GRID_TH && gridIn >= gridOut) ? 'import' : ((gridOut > GRID_TH && gridOut > gridIn) ? 'export' : 'idle');
+      const gridDir = (gridSigned < -GRID_TH) ? 'import' : ((gridSigned > GRID_TH) ? 'export' : 'idle');
 
       // formatters
       const fmtV = (v) => `${(Number.isFinite(v) ? v.toFixed(1) : 0)} V`;
       const fmtW = (w) => `${Math.round(Number.isFinite(w) ? w : 0)} W`;
-
+      const fmtWCompact = (w) => {
+        const n = Math.abs(Number.isFinite(w) ? w : 0);
+        if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}kW`;
+        return `${Math.round(n)}W`;
+      };
       // colors
       const C_PV   = '#f5a623';
       const C_GRID = '#4da3ff';
@@ -277,7 +288,7 @@ custom_fields:
 
         const TL = 120;
 
-        const layer = (from, to, oMul=1.0) => `
+        const layer = (from, to, oMul=1.0, begin="0s") => `
                 <text fill="${color}" dominant-baseline="middle" style="${commonStyle}" opacity="${(oMul).toFixed(2)}">
                   <textPath href="#${pathId}" xlink:href="#${pathId}"
                       startOffset="${from}"
@@ -286,6 +297,7 @@ custom_fields:
                     ${chevs}
                     <animate attributeName="startOffset"
                        dur="${dur.toFixed(2)}s"
+                       begin="${begin}"
                        repeatCount="indefinite"
                        values="${from};${to}"
                        calcMode="linear"/>
@@ -295,8 +307,8 @@ custom_fields:
 
         return `
                 <g opacity="${op.toFixed(3)}">
-                  ${layer(a1_from, a1_to, 1.00)}
-                  ${layer(a2_from, a2_to, 0.70)}
+                  ${layer(a1_from, a1_to, 1.00, "0s")}
+                  ${layer(a2_from, a2_to, 0.70, `-${(dur/2).toFixed(2)}s`)}
                 </g>
               `;
             };
@@ -374,17 +386,23 @@ custom_fields:
         const y0 = topAnchor(yCircle, dy);
         return `
                 <text x="${x}" y="${y0+6}"  text-anchor="middle" style="fill:rgba(255,255,255,0.66);font-size:4.8px;font-weight:900;">${vStr}</text>
-                <text x="${x}" y="${y0+12}" text-anchor="middle" style="${powerStyle(active, color, filterId)}font-size:5.0px;font-weight:900;">${pStr}</text>
+                <text x="${x}" y="${y0+12}" text-anchor="middle" style="${powerStyle(active, color, filterId)}font-size:4.4px;font-weight:900;">${pStr}</text>
               `;
             };
 
       const blockBattery = (x, yCircle) => {
         const y0 = topAnchor(yCircle, -BOT_LIFT);
+        const battAbs = Math.abs(battP);
+        const battLabel =
+          battAbs <= TH ? 'Idle' :
+          battP >= 0 ? `Chg ${fmtWCompact(battAbs)}` :
+          `Dis ${fmtWCompact(battAbs)}`;
+
         return `
-                <text x="${x}" y="${y0+6}"  text-anchor="middle" style="fill:rgba(255,255,255,0.66);font-size:4.8px;font-weight:900;">${fmtV(battV)}</text>
-                <text x="${x}" y="${y0+12}" text-anchor="middle" style="${powerStyle(showBat, C_BAT, glowFilterId)}font-size:5.0px;font-weight:900;">${fmtW(battP)}</text>
-              `;
-            };
+          <text x="${x}" y="${y0+6}" text-anchor="middle" style="fill:rgba(255,255,255,0.66);font-size:4.8px;font-weight:900;">${fmtV(battV)}</text>
+          <text x="${x}" y="${y0+12}" text-anchor="middle" style="${powerStyle(showBat, C_BAT, glowFilterId)}font-size:4.4px;font-weight:900;">${battLabel}</text>
+        `;
+      };
 
       // top-right link icon
       const SAFE_MARGIN_X = 10;
@@ -393,14 +411,32 @@ custom_fields:
       const LINK_Y = SAFE_MARGIN_Y;
 
       const linkIcon = () => `
-              <g transform="translate(${LINK_X} ${LINK_Y})" opacity="0.95" style="${isAlarm ? 'animation:pulseAlarm 1.2s ease-in-out infinite;' : ''}">
-                <circle cx="0" cy="0" r="3.1" fill="rgba(0,0,0,0.25)" stroke="${linkColor}" stroke-width="0.8"/>
-                <path d="M -1.5 0.2 c 0.0 -0.9 0.6 -1.5 1.5 -1.5 h 0.7 c 0.9 0 1.5 0.6 1.5 1.5 c 0.0 0.9 -0.6 1.5 -1.5 1.5 h -0.2"
-                fill="none" stroke="${linkColor}" stroke-width="0.7" stroke-linecap="round"/>
-                <path d="M 1.5 -0.2 c 0.0 0.9 -0.6 1.5 -1.5 1.5 h -0.7 c -0.9 0 -1.5 -0.6 -1.5 -1.5 c 0.0 -0.9 0.6 -1.5 1.5 -1.5 h 0.2"
-                fill="none" stroke="${linkColor}" stroke-width="0.7" stroke-linecap="round"/>
-              </g>
-            `;
+        <g transform="translate(${LINK_X} ${LINK_Y})" opacity="0.95">
+          <circle
+            cx="0" cy="0" r="3.1"
+            fill="rgba(0,0,0,0.25)"
+            stroke="${linkColor}"
+            stroke-width="0.8"
+            style="${isAlarm ? 'animation:alarmBlink 0.9s infinite;' : ''}"
+          />
+          <path
+            d="M -1.5 0.2 c 0.0 -0.9 0.6 -1.5 1.5 -1.5 h 0.7 c 0.9 0 1.5 0.6 1.5 1.5 c 0.0 0.9 -0.6 1.5 -1.5 1.5 h -0.2"
+            fill="none"
+            stroke="${linkColor}"
+            stroke-width="0.7"
+            stroke-linecap="round"
+            style="${isAlarm ? 'animation:alarmBlinkStroke 0.9s infinite;' : ''}"
+          />
+          <path
+            d="M 1.5 -0.2 c 0.0 0.9 -0.6 1.5 -1.5 1.5 h -0.7 c -0.9 0 -1.5 -0.6 -1.5 -1.5 c 0.0 -0.9 0.6 -1.5 1.5 -1.5 h 0.2"
+            fill="none"
+            stroke="${linkColor}"
+            stroke-width="0.7"
+            stroke-linecap="round"
+            style="${isAlarm ? 'animation:alarmBlinkStroke 0.9s infinite;' : ''}"
+          />
+        </g>
+      `;
 
       const debugDots = DEBUG_HIT ? `
               <circle cx="22" cy="${30+SHIFT_Y}" r="7" fill="rgba(255,0,0,0.65)"/>
@@ -410,7 +446,7 @@ custom_fields:
               <circle cx="${X_C}" cy="${Y_C+SHIFT_Y}" r="9" fill="rgba(255,0,0,0.65)"/>
             ` : '';
 
-      const gridFlowDir = (gridDir === "import") ? "rev" : "fwd";
+      const gridFlowDir = "fwd"; // path itself already encodes direction
       const batFlowDir  = (batDir  === "charge") ? "rev" : "fwd";
 
       return `
@@ -439,7 +475,29 @@ custom_fields:
                     <style>
                       @keyframes pulseSoft { 0%,100% { opacity: .60; } 50% { opacity: .95; } }
                       @keyframes pulseFill { 0%,100% { opacity: .45; } 50% { opacity: .80; } }
-                      @keyframes pulseAlarm { 0%,100% { opacity: .40; } 50% { opacity: 1.0; } }
+                      @keyframes alarmBlink {
+                        0%, 100% {
+                          opacity: 0.25;
+                          stroke-width: 0.8;
+                          filter: drop-shadow(0 0 0px #ff3b30);
+                        }
+                        50% {
+                          opacity: 1;
+                          stroke-width: 1.6;
+                          filter: drop-shadow(0 0 6px #ff3b30);
+                        }
+                      }
+
+                      @keyframes alarmBlinkStroke {
+                        0%, 100% {
+                          opacity: 0.35;
+                          filter: drop-shadow(0 0 0px #ff3b30);
+                        }
+                        50% {
+                          opacity: 1;
+                          filter: drop-shadow(0 0 6px #ff3b30);
+                        }
+                      }
                     /* --- FINAL spacing override (tight label + value + unit) --- */
                     .row{
                 display: flex !important;
@@ -856,15 +914,31 @@ custom_fields:
                          repeatCount="indefinite"/>
                     </circle>
                     <text x="${X_C}" y="${Y_C-1}" text-anchor="middle" fill="white" font-size="6.2" font-weight="800">DC/AC</text>
-                    <text x="${X_C}" y="${Y_C+6}" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="5" font-weight="700">~ ~</text>
+                    <text x="${X_C}" y="${Y_C+6}" text-anchor="middle" fill="rgba(255,255,255,0.72)" font-size="4.4" font-weight="800">${modeText}</text>
 
-                    <circle cx="${X_L}" cy="${Y_T}" r="${R_NODE}" fill="#0d0f14" stroke="${C_PV}" stroke-width="2"/>
+                    <circle
+                      cx="${X_L}" cy="${Y_T}" r="${R_NODE}"
+                      fill="#0d0f14"
+                      stroke="${showPV ? C_PV : 'rgba(255,255,255,0.18)'}"
+                      stroke-width="2"
+                    />
                     ${iconPV(X_L, Y_T, showPV)}
                     ${block2(X_PV_TX, Y_T, fmtV(pvV), fmtW(pvP), showPV, C_PV, TOP_DROP, glowFilterId)}
 
                     <circle cx="${X_R}" cy="${Y_T}" r="${R_NODE}" fill="#0d0f14" stroke="${C_GRID}" stroke-width="2"/>
                     ${iconGrid(X_R, Y_T)}
-                    ${block2(X_GRID_TX, Y_T, fmtV(acV), fmtW(Math.abs(gridP)), showGrid, C_GRID, TOP_DROP, glowFilterId)}
+                    ${block2(
+                      X_GRID_TX,
+                      Y_T,
+                      fmtV(acV),
+                      gridDir === 'idle'
+                        ? 'Idle'
+                        : `${gridDir === 'import' ? 'Imp' : 'Exp'} ${fmtWCompact(gridP)}`,
+                      showGrid,
+                      C_GRID,
+                      TOP_DROP,
+                      glowFilterId
+                    )}
 
                     <circle cx="${X_L}" cy="${Y_B}" r="${R_NODE}" fill="#0d0f14" stroke="${C_BAT}" stroke-width="2"/>
                     ${iconBattery(X_L, Y_B)}
@@ -872,7 +946,16 @@ custom_fields:
 
                     <circle cx="${X_R}" cy="${Y_B}" r="${R_NODE}" fill="#0d0f14" stroke="${C_HOME}" stroke-width="2"/>
                     ${iconHome(X_R, Y_B)}
-                    ${block2(X_HOME_TX, Y_B, fmtV(acV), fmtW(homeP), showHome, C_HOME, -BOT_LIFT, glowFilterId)}
+                    ${block2(
+                      X_HOME_TX,
+                      Y_B,
+                      fmtV(acV),
+                      `${fmtWCompact(homeP)} Δ${Math.abs(deltaP)}W`,
+                      showHome,
+                      C_HOME,
+                      -BOT_LIFT,
+                      glowFilterId
+                    )}
                   </g>
                 </svg>
               </div>
@@ -1045,18 +1128,28 @@ custom_fields:
                 - type: entities
                   show_header_toggle: false
                   entities:
+                    - entity: sensor.pv_total_power
+                      name: Total Solar Power
+
+                    - type: section
+                      label: PV String 1
+
+                    - entity: sensor.anenji_inverter_pv1_power
+                      name: PV1 Power
                     - entity: sensor.anenji_inverter_pv1_voltage
                       name: PV1 Voltage
                     - entity: sensor.anenji_inverter_pv1_current
                       name: PV1 Current
-                    - entity: sensor.anenji_inverter_pv1_power
-                      name: PV1 Power
+
+                    - type: section
+                      label: PV String 2
+
+                    - entity: sensor.anenji_inverter_pv2_power
+                      name: PV2 Power
                     - entity: sensor.anenji_inverter_pv2_voltage
                       name: PV2 Voltage
                     - entity: sensor.anenji_inverter_pv2_current
                       name: PV2 Current
-                    - entity: sensor.anenji_inverter_pv2_power
-                      name: PV2 Power
           uix:
             style:
               ha-dialog $: |
@@ -1255,14 +1348,20 @@ custom_fields:
                 - type: entities
                   show_header_toggle: false
                   entities:
+                    - entity: sensor.battery_operating_mode
+                      name: Battery State
+
+                    - entity: sensor.anenji_inverter_battery_soc
+                      name: Battery State of Charge
+
+                    - entity: sensor.anenji_inverter_battery_power_signed
+                      name: Battery Power (+ charge / - discharge)
+
                     - entity: sensor.anenji_inverter_battery_voltage
                       name: Battery Voltage
+
                     - entity: sensor.anenji_inverter_battery_current
                       name: Battery Current
-                    - entity: sensor.anenji_inverter_battery_power_signed
-                      name: Battery Power
-                    - entity: sensor.anenji_inverter_battery_soc
-                      name: Battery %
           uix:
             style:
               ha-dialog $: |
@@ -1461,16 +1560,20 @@ custom_fields:
                 - type: entities
                   show_header_toggle: false
                   entities:
-                    - entity: sensor.anenji_inverter_grid_import_power_filtered
-                      name: Grid Power
+                    - entity: sensor.anenji_inverter_grid_power_signed
+                      name: Net Grid Power (- = import)
+                    - entity: sensor.shellyem_c4d8d500468f_channel_1_voltage
+                      name: Display Voltage
                     - entity: sensor.anenji_inverter_mains_voltage_l1
                       name: Grid Line 1 Voltage
                     - entity: sensor.anenji_inverter_mains_current_l1
-                      name: Grid Line 1 Amperage
+                      name: Grid Line 1 Current
                     - entity: sensor.anenji_inverter_mains_voltage_l2
                       name: Grid Line 2 Voltage
                     - entity: sensor.anenji_inverter_mains_current_l2
-                      name: Grid Line 2 Amperage
+                      name: Grid Line 2 Current
+                    - entity: sensor.energy_source_mode
+                      name: Current Operating Mode
           uix:
             style:
               ha-dialog $: |
@@ -1669,16 +1772,18 @@ custom_fields:
                 - type: entities
                   show_header_toggle: false
                   entities:
-                    - entity: sensor.anenji_inverter_load_power_total
-                      name: Home Power
-                    - entity: sensor.anenji_inverter_output_voltage_l1
-                      name: Home Line 1 Voltage
-                    - entity: sensor.anenji_inverter_output_current_l1
-                      name: Home Line 1 Amperage
-                    - entity: sensor.anenji_inverter_output_voltage_l2
-                      name: Home Line 2 Voltage
-                    - entity: sensor.anenji_inverter_output_current_l2
-                      name: Home Line 2 Amperage
+                    - entity: sensor.house_load_ts_aware
+                      name: Home Power (TS Aware)
+                    - entity: sensor.shellyem_c4d8d500468f_channel_1_voltage
+                      name: Home Voltage
+                    - entity: sensor.semmeter_80b54ee3f0a6_main_circuit_l1_power
+                      name: Home Line 1 Power
+                    - entity: sensor.semmeter_80b54ee3f0a6_main_circuit_l2_power
+                      name: Home Line 2 Power
+                    - entity: sensor.semmeter_80b54ee3f0a6_main_circuit_current
+                      name: Home Current
+                    - entity: sensor.energy_source_mode
+                      name: Supply Mode
           uix:
             style:
               ha-dialog $: |
@@ -1877,6 +1982,9 @@ custom_fields:
                 - type: entities
                   show_header_toggle: false
                   entities:
+                    - type: section
+                      label: Temperatures
+
                     - entity: sensor.anenji_inverter_pv_temp
                       name: PV Temperature
                     - entity: sensor.anenji_inverter_inverter_temp
@@ -1884,23 +1992,31 @@ custom_fields:
                     - entity: sensor.anenji_inverter_transformer_temp
                       name: Transformer Temperature
                     - entity: sensor.anenji_inverter_envir_temp
-                      name: Envir Temperature
-                    - entity: sensor.anenji_inverter_product_serial_number
-                      name: Serial number
+                      name: Ambient Temperature
+
+                    - type: section
+                      label: DC Bus
+
+                    - entity: sensor.anenji_inverter_bus_voltage_positive
+                      name: Bus Voltage Positive
+                    - entity: sensor.anenji_inverter_bus_voltage_negative
+                      name: Bus Voltage Negative
                     - entity: sensor.anenji_inverter_rated_active_power
-                      name: Power Rate
+                      name: Rated Power
+
+                    - type: section
+                      label: Device Info
+
+                    - entity: sensor.anenji_inverter_product_serial_number
+                      name: Serial Number
                     - entity: sensor.anenji_inverter_hwver_m1_2
-                      name: Hardware version M1
+                      name: Hardware Version M1
                     - entity: sensor.anenji_inverter_hwver_m2_2
-                      name: Hardware version M2
+                      name: Hardware Version M2
                     - entity: sensor.anenji_inverter_hwver_s1_2
-                      name: Hardware version S1
+                      name: Hardware Version S1
                     - entity: sensor.anenji_inverter_libver_2
                       name: Library Version
-                    - entity: sensor.anenji_inverter_bus_voltage_positive
-                      name: Bus Voltage pasitive
-                    - entity: sensor.anenji_inverter_bus_voltage_negative
-                      name: Bus Voltage negative
           uix:
             style:
               ha-dialog $: |
@@ -2133,3 +2249,4 @@ custom_fields:
                   
                   /* Remove padding */
                   .dialog__panel,
+                  .dialog__content { padding: 0 !important; }
