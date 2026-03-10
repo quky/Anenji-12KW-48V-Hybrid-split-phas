@@ -102,8 +102,9 @@ button:
 
 # ===============================
 # SENSORS
-# ===============================
+# ==========================
 sensor:
+
   # -------- BATTERY --------
   - platform: modbus_controller
     modbus_controller_id: inv
@@ -724,9 +725,34 @@ sensor:
     register_type: holding
     value_type: U_WORD
     internal: true
-# BINARY SENSORS
-# ===============================
-  # -------- DEVICE INFO / FIRMWARE --------
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: sys_alarm_flag_1
+    name: "SysAlarmFlag_1"
+    address: 0x75A5
+    register_type: holding
+    value_type: U_WORD
+    internal: true
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_record_count
+    name: "Fault Record Count"
+    entity_category: diagnostic
+    address: 0xC7AF
+    register_type: holding
+    value_type: U_WORD
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_record_pointer
+    name: "Fault Record Pointer"
+    entity_category: diagnostic
+    address: 0xC7B0
+    register_type: holding
+    value_type: U_WORD
+
   - platform: modbus_controller
     modbus_controller_id: inv
     id: hwver_m1
@@ -824,73 +850,530 @@ binary_sensor:
     id: der_alarm_active
     device_class: problem
     lambda: |-
+      if (!id(der_alarm_status).has_state()) return false;
       return ((uint16_t) id(der_alarm_status).state) != 0;
 
-  - platform: template
-    name: "Fault Over Current"
+  # -------- MANUAL FAULT CODES --------
+  # 0x9A4C = Fault 01
+  # 0x9A4D = Fault 02
+  # 0x9A4E = Fault 03
+  # etc.
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_01_battery_under_voltage_warning
+    name: "Fault 01 Battery Under Voltage Warning"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A4C
+    bitmask: 0x0001
     device_class: problem
-    lambda: |-
-      return ((uint16_t) id(der_alarm_status).state >> 0) & 1;
+    skip_updates: 5
 
-  - platform: template
-    name: "Fault Over Voltage"
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_02_battery_under_voltage_protection
+    name: "Fault 02 Battery Under Voltage Protection"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A4D
+    bitmask: 0x0001
     device_class: problem
-    lambda: |-
-      return ((uint16_t) id(der_alarm_status).state >> 1) & 1;
+    skip_updates: 5
 
-  - platform: template
-    name: "Under Voltage Fault"
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_03_average_battery_discharge_current_over_current_protection
+    name: "Fault 03 Average Battery Discharge Current Over Current Protection"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A4E
+    bitmask: 0x0001
     device_class: problem
-    lambda: |-
-      return ((uint16_t) id(der_alarm_status).state >> 2) & 1;
+    skip_updates: 5
 
-  - platform: template
-    name: "Fault Over Frequency"
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_04_instantaneous_battery_discharge_over_current_protection
+    name: "Fault 04 Instantaneous Battery Discharge Over Current Protection"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A4F
+    bitmask: 0x0001
     device_class: problem
-    lambda: |-
-      return ((uint16_t) id(der_alarm_status).state >> 3) & 1;
+    skip_updates: 5
 
-  - platform: template
-    name: "Under Frequency Fault"
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_05_battery_not_connected
+    name: "Fault 05 Battery Not Connected"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A50
+    bitmask: 0x0001
     device_class: problem
-    lambda: |-
-      return ((uint16_t) id(der_alarm_status).state >> 4) & 1;
+    skip_updates: 5
 
-  - platform: template
-    name: "Fault Voltage Imbalance"
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_06_battery_over_voltage
+    name: "Fault 06 Battery Over Voltage"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A51
+    bitmask: 0x0001
     device_class: problem
-    lambda: |-
-      return ((uint16_t) id(der_alarm_status).state >> 5) & 1;
+    skip_updates: 5
 
-  - platform: template
-    name: "Fault Current Imbalance"
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_07_bms_low_battery_alarm
+    name: "Fault 07 BMS Low Battery Alarm"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A52
+    bitmask: 0x0001
     device_class: problem
-    lambda: |-
-      return ((uint16_t) id(der_alarm_status).state >> 6) & 1;
+    skip_updates: 5
 
-  - platform: template
-    name: "Fault Emergency Local"
-    device_class: safety
-    lambda: |-
-      return ((uint16_t) id(der_alarm_status).state >> 7) & 1;
-
-  - platform: template
-    name: "Fault Emergency Remote"
-    device_class: safety
-    lambda: |-
-      return ((uint16_t) id(der_alarm_status).state >> 8) & 1;
-
-  - platform: template
-    name: "Fault Low Power Input"
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_08_bms_low_battery_protection
+    name: "Fault 08 BMS Low Battery Protection"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A53
+    bitmask: 0x0001
     device_class: problem
-    lambda: |-
-      return ((uint16_t) id(der_alarm_status).state >> 9) & 1;
+    skip_updates: 5
 
-  - platform: template
-    name: "Fault Phase Rotation"
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_09_bypass_overload_protection
+    name: "Fault 09 Bypass Overload Protection"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A54
+    bitmask: 0x0001
     device_class: problem
-    lambda: |-
-      return ((uint16_t) id(der_alarm_status).state >> 10) & 1;
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_10_battery_output_overload_protection
+    name: "Fault 10 Battery Output Overload Protection"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A55
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_11_battery_inverter_output_short_circuit
+    name: "Fault 11 Battery Inverter Output Short Circuit"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A56
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_12_the_ac_output_of_the_battery_inverter_over_circuit
+    name: "Fault 12 The AC Output Of The Battery Inverter Over Circuit"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A57
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_13_the_dc_component_of_the_battery_inverter_voltage_is_abnormal
+    name: "Fault 13 The DC Component Of The Battery Inverter Voltage Is Abnormal"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A58
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_14_bus_over_voltage_software_sampling_protection
+    name: "Fault 14 Bus Over Voltage Software Sampling Protection"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A59
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_15_bus_over_voltage_hardware_sampling_protection
+    name: "Fault 15 Bus Over Voltage Hardware Sampling Protection"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A5A
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_16_bus_under_voltage_protection
+    name: "Fault 16 Bus Under Voltage Protection"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A5B
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_17_bus_short_circuit_protection
+    name: "Fault 17 Bus Short Circuit Protection"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A5C
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_18_the_pv_input_voltage_is_over_voltage
+    name: "Fault 18 The PV Input Voltage Is Over Voltage"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A5D
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_20_pv_over_current_protection
+    name: "Fault 20 PV Over Current Protection"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A5F
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_22_the_pv_heat_sink_is_overheated_procedure
+    name: "Fault 22 The PV Heat Sink Is Overheated Procedure"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A61
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_23_the_ac_heat_sink_is_overheated_procedure
+    name: "Fault 23 The AC Heat Sink Is Overheated Procedure"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A62
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_24_the_temperature_of_the_main_transformer_is_overheated
+    name: "Fault 24 The Temperature Of The Main Transformer Is Overheated"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A63
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_25_ac_input_relay_short_circuit
+    name: "Fault 25 Ac Input Relay Short Circuit"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A64
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_27_fan_failure
+    name: "Fault 27 Fan Failure"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A66
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_30_type_detection_error
+    name: "Fault 30 Type Detection Error"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A69
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_33_parallel_control_can_communication_is
+    name: "Fault 33 Parallel Control CAN Communication Is"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A6C
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_34_parallel_control_can_communication_is_faulty
+    name: "Fault 34 Parallel Control CAN Communication Is Faulty"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A6D
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_35_parallel_mode_is_faulty
+    name: "Fault 35 Parallel Mode Is Faulty"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A6E
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_36_parallel_current_sharing_fault
+    name: "Fault 36 Parallel Current Sharing Fault"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A6F
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_37_parallel_id_setting_error
+    name: "Fault 37 Parallel ID Setting Error"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A70
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_38_inconsistent_battery_in_parallel_mode
+    name: "Fault 38 Inconsistent Battery In Parallel Mode"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A71
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_39_inconsistent_ac_input_source_in_parallel_mode
+    name: "Fault 39 Inconsistent AC Input Source In Parallel Mode"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A72
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_40_the_parallel_mode_synchronization_fails
+    name: "Fault 40 The Parallel Mode Synchronization Fails"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A73
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_41_inconsistent_system_firmware_version_in_parallel_mode
+    name: "Fault 41 Inconsistent System Firmware Version In Parallel Mode"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A74
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_42_the_parallel_communication_cable_is_faulty
+    name: "Fault 42 The Parallel Communication Cable Is Faulty"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A75
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_43_serial_number_error
+    name: "Fault 43 Serial Number Error"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A76
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_49_bms_communication_error
+    name: "Fault 49 BMS Communication Error"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A7C
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_50_bms_other_alarm
+    name: "Fault 50 BMS Other Alarm"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A7D
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_51_bms_battery_over_temperature_alarm
+    name: "Fault 51 BMS Battery Over Temperature Alarm"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A7E
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_52_bms_battery_over_current_alarm
+    name: "Fault 52 BMS Battery Over Current Alarm"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A7F
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_53_bms_battery_over_voltage_alarm
+    name: "Fault 53 BMS Battery Over Voltage Alarm"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A80
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_54_bms_battery_low_voltage_alarm
+    name: "Fault 54 BMS Battery Low Voltage Alarm"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A81
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: inv
+    id: fault_55_bms_battery_low_temperature_alarm
+    name: "Fault 55 BMS Battery Low Temperature Alarm"
+    internal: true
+    entity_category: diagnostic
+    register_type: holding
+    address: 0x9A82
+    bitmask: 0x0001
+    device_class: problem
+    skip_updates: 5
 
 text_sensor:
   - platform: template
@@ -919,6 +1402,56 @@ text_sensor:
 
       return out;
 
+  - platform: template
+    name: "Inverter Style Fault Short"
+    id: inverter_style_fault_short
+    icon: mdi:alert-box-outline
+    update_interval: 5s
+    lambda: |-
+      std::string pointer = "0";
+      std::string detail = "No Active Fault";
+
+      if (id(fault_record_pointer).has_state()) {
+        char pbuf[12];
+        snprintf(pbuf, sizeof(pbuf), "%.0f", id(fault_record_pointer).state);
+        pointer = std::string(pbuf);
+      }
+
+      if (id(all_inverter_alarms).has_state() && id(all_inverter_alarms).state != "OK") {
+        detail = id(all_inverter_alarms).state;
+      } else if (id(der_alarm_list).has_state() && id(der_alarm_list).state != "OK") {
+        detail = id(der_alarm_list).state;
+      }
+
+      return std::string("#") + pointer + "  " + detail;
+      
+  - platform: template
+    name: "All Inverter Alarms"
+    id: all_inverter_alarms
+    icon: mdi:alert-circle-outline
+    update_interval: 5s
+    lambda: |-
+      std::string out;
+      auto add = [&](const char* s) { if (!out.empty()) out += ", "; out += s; };
+
+      if (id(fault_01_battery_under_voltage_warning).state) add("Fault 01 Battery Under Voltage Warning");
+      if (id(fault_02_battery_under_voltage_protection).state) add("Fault 02 Battery Under Voltage Protection");
+      if (id(fault_03_average_battery_discharge_current_over_current_protection).state) add("Fault 03 Battery Discharge Overcurrent");
+      if (id(fault_04_instantaneous_battery_discharge_over_current_protection).state) add("Fault 04 Battery Instant Overcurrent");
+      if (id(fault_05_battery_not_connected).state) add("Fault 05 Battery Not Connected");
+      if (id(fault_06_battery_over_voltage).state) add("Fault 06 Battery Over Voltage");
+      if (id(fault_07_bms_low_battery_alarm).state) add("Fault 07 BMS Low Battery Alarm");
+      if (id(fault_08_bms_low_battery_protection).state) add("Fault 08 BMS Low Battery Protection");
+      if (id(fault_49_bms_communication_error).state) add("Fault 49 BMS Communication Error");
+      if (id(fault_50_bms_other_alarm).state) add("Fault 50 BMS Other Alarm");
+      if (id(fault_51_bms_battery_over_temperature_alarm).state) add("Fault 51 BMS Battery Over Temperature");
+      if (id(fault_52_bms_battery_over_current_alarm).state) add("Fault 52 BMS Battery Over Current");
+      if (id(fault_53_bms_battery_over_voltage_alarm).state) add("Fault 53 BMS Battery Over Voltage");
+      if (id(fault_54_bms_battery_low_voltage_alarm).state) add("Fault 54 BMS Battery Low Voltage");
+      if (id(fault_55_bms_battery_low_temperature_alarm).state) add("Fault 55 BMS Battery Low Temperature");
+
+      if (out.empty()) return std::string("OK");
+      return out;
 # ===============================
 # PERIODIC ENFORCEMENT
 # ===============================
