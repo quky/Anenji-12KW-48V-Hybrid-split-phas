@@ -1375,6 +1375,22 @@ binary_sensor:
     device_class: problem
     skip_updates: 5
 
+  - platform: template
+    name: "Inverter Alarm Active"
+    id: inverter_alarm_active
+    device_class: problem
+    lambda: |-
+      if (id(sys_alarm_flag_1).has_state() && ((uint16_t) id(sys_alarm_flag_1).state != 0)) {
+        return true;
+      }
+      if (id(all_inverter_alarms).has_state() && id(all_inverter_alarms).state != "OK") {
+        return true;
+      }
+      if (id(der_alarm_list).has_state() && id(der_alarm_list).state != "OK") {
+        return true;
+      }
+      return false;
+
 text_sensor:
   - platform: template
     name: "Fault Alarm"
@@ -1382,6 +1398,7 @@ text_sensor:
     icon: mdi:alert-circle-outline
     update_interval: 6s
     lambda: |-
+      if (!id(der_alarm_status).has_state()) return std::string("OK");
       uint16_t v = (uint16_t) id(der_alarm_status).state;
       if (v == 0) return std::string("OK");
 
@@ -1436,19 +1453,47 @@ text_sensor:
 
       if (id(fault_01_battery_under_voltage_warning).state) add("Fault 01 Battery Under Voltage Warning");
       if (id(fault_02_battery_under_voltage_protection).state) add("Fault 02 Battery Under Voltage Protection");
-      if (id(fault_03_average_battery_discharge_current_over_current_protection).state) add("Fault 03 Battery Discharge Overcurrent");
-      if (id(fault_04_instantaneous_battery_discharge_over_current_protection).state) add("Fault 04 Battery Instant Overcurrent");
+      if (id(fault_03_average_battery_discharge_current_over_current_protection).state) add("Fault 03 Average Battery Discharge Current Over Current Protection");
+      if (id(fault_04_instantaneous_battery_discharge_over_current_protection).state) add("Fault 04 Instantaneous Battery Discharge Over Current Protection");
       if (id(fault_05_battery_not_connected).state) add("Fault 05 Battery Not Connected");
       if (id(fault_06_battery_over_voltage).state) add("Fault 06 Battery Over Voltage");
       if (id(fault_07_bms_low_battery_alarm).state) add("Fault 07 BMS Low Battery Alarm");
       if (id(fault_08_bms_low_battery_protection).state) add("Fault 08 BMS Low Battery Protection");
+      if (id(fault_09_bypass_overload_protection).state) add("Fault 09 Bypass Overload Protection");
+      if (id(fault_10_battery_output_overload_protection).state) add("Fault 10 Battery Output Overload Protection");
+      if (id(fault_11_battery_inverter_output_short_circuit).state) add("Fault 11 Battery Inverter Output Short Circuit");
+      if (id(fault_12_the_ac_output_of_the_battery_inverter_over_circuit).state) add("Fault 12 The AC Output Of The Battery Inverter Over Circuit");
+      if (id(fault_13_the_dc_component_of_the_battery_inverter_voltage_is_abnormal).state) add("Fault 13 The DC Component Of The Battery Inverter Voltage Is Abnormal");
+      if (id(fault_14_bus_over_voltage_software_sampling_protection).state) add("Fault 14 Bus Over Voltage Software Sampling Protection");
+      if (id(fault_15_bus_over_voltage_hardware_sampling_protection).state) add("Fault 15 Bus Over Voltage Hardware Sampling Protection");
+      if (id(fault_16_bus_under_voltage_protection).state) add("Fault 16 Bus Under Voltage Protection");
+      if (id(fault_17_bus_short_circuit_protection).state) add("Fault 17 Bus Short Circuit Protection");
+      if (id(fault_18_the_pv_input_voltage_is_over_voltage).state) add("Fault 18 The PV Input Voltage Is Over Voltage");
+      if (id(fault_20_pv_over_current_protection).state) add("Fault 20 PV Over Current Protection");
+      if (id(fault_22_the_pv_heat_sink_is_overheated_procedure).state) add("Fault 22 The PV Heat Sink Is Overheated Procedure");
+      if (id(fault_23_the_ac_heat_sink_is_overheated_procedure).state) add("Fault 23 The AC Heat Sink Is Overheated Procedure");
+      if (id(fault_24_the_temperature_of_the_main_transformer_is_overheated).state) add("Fault 24 The Temperature Of The Main Transformer Is Overheated");
+      if (id(fault_25_ac_input_relay_short_circuit).state) add("Fault 25 Ac Input Relay Short Circuit");
+      if (id(fault_27_fan_failure).state) add("Fault 27 Fan Failure");
+      if (id(fault_30_type_detection_error).state) add("Fault 30 Type Detection Error");
+      if (id(fault_33_parallel_control_can_communication_is).state) add("Fault 33 Parallel Control CAN Communication Is");
+      if (id(fault_34_parallel_control_can_communication_is_faulty).state) add("Fault 34 Parallel Control CAN Communication Is Faulty");
+      if (id(fault_35_parallel_mode_is_faulty).state) add("Fault 35 Parallel Mode Is Faulty");
+      if (id(fault_36_parallel_current_sharing_fault).state) add("Fault 36 Parallel Current Sharing Fault");
+      if (id(fault_37_parallel_id_setting_error).state) add("Fault 37 Parallel ID Setting Error");
+      if (id(fault_38_inconsistent_battery_in_parallel_mode).state) add("Fault 38 Inconsistent Battery In Parallel Mode");
+      if (id(fault_39_inconsistent_ac_input_source_in_parallel_mode).state) add("Fault 39 Inconsistent AC Input Source In Parallel Mode");
+      if (id(fault_40_the_parallel_mode_synchronization_fails).state) add("Fault 40 The Parallel Mode Synchronization Fails");
+      if (id(fault_41_inconsistent_system_firmware_version_in_parallel_mode).state) add("Fault 41 Inconsistent System Firmware Version In Parallel Mode");
+      if (id(fault_42_the_parallel_communication_cable_is_faulty).state) add("Fault 42 The Parallel Communication Cable Is Faulty");
+      if (id(fault_43_serial_number_error).state) add("Fault 43 Serial Number Error");
       if (id(fault_49_bms_communication_error).state) add("Fault 49 BMS Communication Error");
       if (id(fault_50_bms_other_alarm).state) add("Fault 50 BMS Other Alarm");
-      if (id(fault_51_bms_battery_over_temperature_alarm).state) add("Fault 51 BMS Battery Over Temperature");
-      if (id(fault_52_bms_battery_over_current_alarm).state) add("Fault 52 BMS Battery Over Current");
-      if (id(fault_53_bms_battery_over_voltage_alarm).state) add("Fault 53 BMS Battery Over Voltage");
-      if (id(fault_54_bms_battery_low_voltage_alarm).state) add("Fault 54 BMS Battery Low Voltage");
-      if (id(fault_55_bms_battery_low_temperature_alarm).state) add("Fault 55 BMS Battery Low Temperature");
+      if (id(fault_51_bms_battery_over_temperature_alarm).state) add("Fault 51 BMS Battery Over Temperature Alarm");
+      if (id(fault_52_bms_battery_over_current_alarm).state) add("Fault 52 BMS Battery Over Current Alarm");
+      if (id(fault_53_bms_battery_over_voltage_alarm).state) add("Fault 53 BMS Battery Over Voltage Alarm");
+      if (id(fault_54_bms_battery_low_voltage_alarm).state) add("Fault 54 BMS Battery Low Voltage Alarm");
+      if (id(fault_55_bms_battery_low_temperature_alarm).state) add("Fault 55 BMS Battery Low Temperature Alarm");
 
       if (out.empty()) return std::string("OK");
       return out;
