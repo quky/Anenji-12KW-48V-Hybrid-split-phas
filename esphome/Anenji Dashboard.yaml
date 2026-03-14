@@ -131,29 +131,107 @@ custom_fields:
       const gridIn  = num('sensor.anenji_inverter_grid_import_power_filtered');
       const gridOut = num('sensor.anenji_inverter_grid_export_power_filtered');
 
-      const gridSigned = num('sensor.anenji_inverter_grid_power_signed');
       const homeP = num('sensor.house_load_ts_aware');
       const acV = num('sensor.shellyem_c4d8d500468f_channel_1_voltage');
 
       const tsGrid = hass.states['switch.transfer_switch_controller']?.state === 'on';
       const modeText = tsGrid ? 'BYPASS' : 'INVERTING';
 
-      // UI convention: + = import, - = export
-      const gridP = -gridSigned;
-
-      const deltaP = Math.round(homeP - Math.abs(gridP));
-
       // thresholds
       const TH = 25;
-      const GRID_TH = 50;
+
+      // grid thresholds
+      const GRID_ON_TH = 120;
+      const GRID_OFF_TH = 60;
+      const EXPORT_CONFIRM_MS = 24000;
+      const IMPORT_CONFIRM_MS = 4000;
+
+      // persistent memory for anti-flicker
+      window.__anenjiGridState = window.__anenjiGridState || {
+        dir: 'idle',
+        candidate: 'idle',
+        candidateSince: 0,
+        lastP: 0,
+      };
+
+      const gs = window.__anenjiGridState;
+      const now = Date.now();
+
+      // raw candidate from filtered directional sensors
+      let rawDir = 'idle';
+      let rawP = 0;
+
+      if (gridIn >= GRID_ON_TH && gridIn >= gridOut) {
+        rawDir = 'import';
+        rawP = gridIn;
+      } else if (gridOut >= GRID_ON_TH && gridOut > gridIn) {
+        rawDir = 'export';
+        rawP = gridOut;
+      } else {
+        rawDir = 'idle';
+        rawP = 0;
+      }
+
+      // never show export unless transfer switch is actually on grid/bypass
+      if (!tsGrid && rawDir === 'export') {
+        rawDir = 'idle';
+        rawP = 0;
+      }
+
+      // hysteresis: once active, stay active until both directions are low
+      const bothLow = (gridIn <= GRID_OFF_TH && gridOut <= GRID_OFF_TH);
+
+      // candidate tracking
+      if (rawDir !== gs.candidate) {
+        gs.candidate = rawDir;
+        gs.candidateSince = now;
+      }
+
+      const candidateAge = now - gs.candidateSince;
+
+      // transition rules
+      if (gs.dir === 'idle') {
+        if (gs.candidate === 'import' && candidateAge >= IMPORT_CONFIRM_MS) {
+          gs.dir = 'import';
+        } else if (gs.candidate === 'export' && candidateAge >= EXPORT_CONFIRM_MS) {
+          gs.dir = 'export';
+        }
+      } else if (gs.dir === 'import') {
+        if (bothLow && gs.candidate === 'idle') {
+          gs.dir = 'idle';
+        } else if (gs.candidate === 'export' && tsGrid && candidateAge >= EXPORT_CONFIRM_MS) {
+          gs.dir = 'export';
+        }
+      } else if (gs.dir === 'export') {
+        if (bothLow && gs.candidate === 'idle') {
+          gs.dir = 'idle';
+        } else if (gs.candidate === 'import' && candidateAge >= IMPORT_CONFIRM_MS) {
+          gs.dir = 'import';
+        }
+      }
+
+      // displayed power follows confirmed direction
+      let gridDir = gs.dir;
+      let gridP = 0;
+
+      if (gridDir === 'import') {
+        gridP = gridIn;
+      } else if (gridDir === 'export') {
+        gridP = gridOut;
+      } else {
+        gridP = 0;
+      }
+
+      gs.lastP = gridP;
+
+      const deltaP = Math.round(homeP - gridP);
 
       const showPV   = pvP > TH;
       const showHome = Math.abs(homeP) > TH;
       const showBat  = Math.abs(battP) > TH;
-      const showGrid = Math.abs(gridSigned) > GRID_TH;
+      const showGrid = gridDir !== 'idle';
 
       const batDir  = battP >= 0 ? 'charge' : 'discharge';
-      const gridDir = (gridSigned < -GRID_TH) ? 'import' : ((gridSigned > GRID_TH) ? 'export' : 'idle');
 
       // formatters
       const fmtV = (v) => `${(Number.isFinite(v) ? v.toFixed(1) : 0)} V`;
@@ -2183,7 +2261,7 @@ custom_fields:
                     browser_mod:
                       service: browser_mod.close_popup
                   custom_fields:
-                    close: >-
+                    close: >
                       [[[ return `<ha-icon icon="mdi:close"
                       style="width:22px;height:22px;"></ha-icon>` ]]]
                   styles:
@@ -2211,8 +2289,18 @@ custom_fields:
                 - type: entities
                   show_header_toggle: false
                   entities:
+                    - entity: binary_sensor.anenji_inverter_inverter_alarm_active
+                      name: Alarm Status
+                    - entity: sensor.anenji_inverter_inverter_style_fault_short
+                      name: Fault
+                    - entity: sensor.anenji_inverter_all_inverter_alarms
+                      name: Live Fault
                     - entity: sensor.anenji_inverter_fault_alarm
-                      name: Fault Alarm
+                      name: Active Alarm Bits
+                    - entity: sensor.anenji_inverter_fault_record_count
+                      name: Fault Count
+                    - entity: sensor.anenji_inverter_fault_record_pointer
+                      name: Fault Pointer
           uix:
             style:
               ha-dialog $: |
