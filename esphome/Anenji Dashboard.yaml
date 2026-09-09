@@ -24,8 +24,8 @@ variables:
   link_size: 56
 styles:
   card:
-    - padding: "0"
-    - margin: "0"
+    - padding: '0'
+    - margin: '0'
     - border-radius: 28px
     - overflow: hidden
     - position: relative
@@ -40,59 +40,59 @@ styles:
         rgba(10,16,18,0.92) 55%, rgba(7,10,12,0.96) 100%)
     - background-repeat: no-repeat
     - background-size: cover
-    - "--ha-card-background": rgba(0,0,0,0)
-    - "--card-background-color": rgba(0,0,0,0)
+    - --ha-card-background: rgba(0,0,0,0)
+    - --card-background-color: rgba(0,0,0,0)
     - box-shadow: 0 10px 24px rgba(0,0,0,0.35)
   custom_fields:
     ui:
       - position: absolute
-      - inset: "0"
+      - inset: '0'
       - width: 100%
       - max-width: 520px
       - height: 100%
-      - z-index: "1"
+      - z-index: '1'
       - pointer-events: none
     pv_hit:
       - position: absolute
-      - left: "[[[ return variables.HIT_LEFT + '%'; ]]]"
-      - top: "[[[ return variables.HIT_TOP + '%'; ]]]"
+      - left: '[[[ return variables.HIT_LEFT + ''%''; ]]]'
+      - top: '[[[ return variables.HIT_TOP + ''%''; ]]]'
       - transform: translate(-50%, -50%)
-      - z-index: "50"
+      - z-index: '50'
       - pointer-events: auto
     grid_hit:
       - position: absolute
-      - left: "[[[ return variables.HIT_RIGHT + '%'; ]]]"
-      - top: "[[[ return variables.HIT_TOP + '%'; ]]]"
+      - left: '[[[ return variables.HIT_RIGHT + ''%''; ]]]'
+      - top: '[[[ return variables.HIT_TOP + ''%''; ]]]'
       - transform: translate(-50%, -50%)
-      - z-index: "50"
+      - z-index: '50'
       - pointer-events: auto
     bat_hit:
       - position: absolute
-      - left: "[[[ return variables.HIT_LEFT + '%'; ]]]"
-      - top: "[[[ return variables.HIT_BOTTOM + '%'; ]]]"
+      - left: '[[[ return variables.HIT_LEFT + ''%''; ]]]'
+      - top: '[[[ return variables.HIT_BOTTOM + ''%''; ]]]'
       - transform: translate(-50%, -50%)
-      - z-index: "50"
+      - z-index: '50'
       - pointer-events: auto
     home_hit:
       - position: absolute
-      - left: "[[[ return variables.HIT_RIGHT + '%'; ]]]"
-      - top: "[[[ return variables.HIT_BOTTOM + '%'; ]]]"
+      - left: '[[[ return variables.HIT_RIGHT + ''%''; ]]]'
+      - top: '[[[ return variables.HIT_BOTTOM + ''%''; ]]]'
       - transform: translate(-50%, -50%)
-      - z-index: "50"
+      - z-index: '50'
       - pointer-events: auto
     dc_hit:
       - position: absolute
-      - left: "[[[ return variables.DC_HIT_X + '%'; ]]]"
-      - top: "[[[ return variables.DC_HIT_Y + '%'; ]]]"
+      - left: '[[[ return variables.DC_HIT_X + ''%''; ]]]'
+      - top: '[[[ return variables.DC_HIT_Y + ''%''; ]]]'
       - transform: translate(-50%, -50%)
-      - z-index: "55"
+      - z-index: '55'
       - pointer-events: auto
     link_hit:
       - position: absolute
-      - left: "[[[ return variables.link_x + '%'; ]]]"
-      - top: "[[[ return variables.link_y + '%'; ]]]"
+      - left: '[[[ return variables.link_x + ''%''; ]]]'
+      - top: '[[[ return variables.link_y + ''%''; ]]]'
       - transform: translate(-50%, -50%)
-      - z-index: "60"
+      - z-index: '60'
       - pointer-events: auto
 custom_fields:
   ui: |
@@ -124,18 +124,21 @@ custom_fields:
       const pvP   = num('sensor.anenji_inverter_pv1_power');
       const pvV   = num('sensor.anenji_inverter_pv1_voltage');
 
-      const battP = num('sensor.anenji_inverter_battery_power_signed');
+      const battP = num('sensor.anenji_inverter_battery_power_v_a');
       const battV = num('sensor.anenji_inverter_battery_voltage');
       const soc   = num('sensor.anenji_inverter_battery_soc');
 
       const gridIn  = num('sensor.anenji_inverter_grid_import_power_filtered');
       const gridOut = num('sensor.anenji_inverter_grid_export_power_filtered');
 
-      const homeP = num('sensor.house_load_ts_aware');
+      const homeP = num('sensor.sem_meter_total_main_power');
       const acV = num('sensor.shellyem_c4d8d500468f_channel_1_voltage');
 
       const tsGrid = hass.states['switch.transfer_switch_controller']?.state === 'on';
-      const modeText = tsGrid ? 'BYPASS' : 'INVERTING';
+      const tsMode = st('sensor.ts_mode') || (tsGrid ? 'grid' : 'inverter');
+      const mainFlowMode = st('sensor.main_power_flow_mode') || 'inverter_idle';
+      const battFlow = st('sensor.battery_flow_direction') || 'idle';
+      const modeText = tsGrid ? 'ATS' : 'INV';
 
       // thresholds
       const TH = 25;
@@ -229,9 +232,15 @@ custom_fields:
       const showPV   = pvP > TH;
       const showHome = Math.abs(homeP) > TH;
       const showBat  = Math.abs(battP) > TH;
-      const showGrid = gridDir !== 'idle';
 
-      const batDir  = battP >= 0 ? 'charge' : 'discharge';
+      // In GRID/bypass mode, always show the grid channel.
+      // In inverter mode, only show it when there is real import/export.
+      const showGrid = tsGrid || gridDir !== 'idle';
+
+      // For this inverter:
+      // battP < 0  => charging
+      // battP > 0  => discharging
+      const batDir = battP < -TH ? 'charge' : battP > TH ? 'discharge' : 'idle';
 
       // formatters
       const fmtV = (v) => `${(Number.isFinite(v) ? v.toFixed(1) : 0)} V`;
@@ -274,7 +283,7 @@ custom_fields:
           ? '#ff3b30'
           : Math.abs(battP) <= TH
             ? 'rgba(180,190,210,0.55)'
-            : battP >= 0
+            : battP < -TH
               ? '#2dd4bf'
               : '#ff4ea1';
       // colors
@@ -303,7 +312,7 @@ custom_fields:
       const BAT_CHG  = "M 46 58 C 40 62, 34 70, 22 78";
       const HOME_FWD = "M 54 58 C 60 62, 66 70, 78 78";
 
-      const gridPath = (gridDir === 'import') ? GRID_IN : GRID_OUT;
+      const gridPath = tsGrid ? GRID_IN : ((gridDir === 'import') ? GRID_IN : GRID_OUT);
       const batPath  = (batDir === 'charge') ? BAT_CHG : BAT_DIS;
 
       // channels
@@ -482,7 +491,7 @@ custom_fields:
         const battAbs = Math.abs(battP);
         const battLabel =
           battAbs <= TH ? 'Idle' :
-          battP >= 0 ? `Chg ${fmtWCompact(battAbs)}` :
+          battP < -TH ? `Chg ${fmtWCompact(battAbs)}` :
           `Dis ${fmtWCompact(battAbs)}`;
 
         return `
@@ -533,8 +542,8 @@ custom_fields:
               <circle cx="${X_C}" cy="${Y_C+SHIFT_Y}" r="9" fill="rgba(255,0,0,0.65)"/>
             ` : '';
 
-      const gridFlowDir = "fwd"; // path itself already encodes direction
-      const batFlowDir  = (batDir  === "charge") ? "rev" : "fwd";
+      const gridFlowDir = "fwd";
+      const batFlowDir  = (batDir === "charge") ? "rev" : "fwd";
 
       return `
               <div style="width:100%;height:100%;">
@@ -1000,8 +1009,7 @@ custom_fields:
                          dur="${dcDur.toFixed(2)}s"
                          repeatCount="indefinite"/>
                     </circle>
-                    <text x="${X_C}" y="${Y_C-1}" text-anchor="middle" fill="white" font-size="6.2" font-weight="800">DC/AC</text>
-                    <text x="${X_C}" y="${Y_C+6}" text-anchor="middle" fill="rgba(255,255,255,0.72)" font-size="4.4" font-weight="800">${modeText}</text>
+                    <text x="${X_C}" y="${Y_C+2}" text-anchor="middle" fill="white" font-size="6.8" font-weight="900">${modeText}</text>
 
                     <circle
                       cx="${X_L}" cy="${Y_T}" r="${R_NODE}"
@@ -1018,9 +1026,13 @@ custom_fields:
                       X_GRID_TX,
                       Y_T,
                       fmtV(acV),
-                      gridDir === 'idle'
-                        ? 'Idle'
-                        : `${gridDir === 'import' ? 'Imp' : 'Exp'} ${fmtWCompact(gridP)}`,
+                      tsGrid
+                        ? `Imp ${fmtWCompact(gridP || gridIn)}`
+                        : (
+                            gridDir === 'idle'
+                              ? 'Idle'
+                              : `${gridDir === 'import' ? 'Imp' : 'Exp'} ${fmtWCompact(gridP)}`
+                          ),
                       showGrid,
                       C_GRID,
                       TOP_DROP,
@@ -1056,8 +1068,8 @@ custom_fields:
       show_state: false
       styles:
         card:
-          - width: "[[[ return variables.HIT_SIZE + 'px'; ]]]"
-          - height: "[[[ return variables.HIT_SIZE + 'px'; ]]]"
+          - width: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
+          - height: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
           - z-index: 50
           - pointer-events: auto
           - z-index: 50
@@ -1065,15 +1077,15 @@ custom_fields:
           - border-radius: 999px
           - box-shadow: none
           - border: none
-          - padding: "0"
-          - margin: "0"
+          - padding: '0'
+          - margin: '0'
           - background: >
               [[[ return variables.DEBUG_HIT ? "rgba(255,0,0,0.55)" :
               "transparent"; ]]]
           - opacity: |
               [[[ return variables.DEBUG_HIT ? 1 : 0.001; ]]]
-          - "--mdc-ripple-color": transparent
-          - "--mdc-ripple-press-opacity": "0"
+          - --mdc-ripple-color: transparent
+          - --mdc-ripple-press-opacity: '0'
       tap_action:
         action: fire-dom-event
         browser_mod:
@@ -1202,7 +1214,7 @@ custom_fields:
                       - position: relative
                     name:
                       - font-size: 18px
-                      - font-weight: "800"
+                      - font-weight: '800'
                       - color: white
                       - justify-self: center
                       - align-self: center
@@ -1274,22 +1286,22 @@ custom_fields:
       show_state: false
       styles:
         card:
-          - width: "[[[ return variables.HIT_SIZE + 'px'; ]]]"
-          - height: "[[[ return variables.HIT_SIZE + 'px'; ]]]"
+          - width: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
+          - height: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
           - z-index: 50
           - pointer-events: auto
           - border-radius: 999px
           - box-shadow: none
           - border: none
-          - padding: "0"
-          - margin: "0"
+          - padding: '0'
+          - margin: '0'
           - background: >
               [[[ return variables.DEBUG_HIT ? "rgba(255,0,0,0.55)" :
               "transparent"; ]]]
           - opacity: |
               [[[ return variables.DEBUG_HIT ? 1 : 0.001; ]]]
-          - "--mdc-ripple-color": transparent
-          - "--mdc-ripple-press-opacity": "0"
+          - --mdc-ripple-color: transparent
+          - --mdc-ripple-press-opacity: '0'
       tap_action:
         action: fire-dom-event
         browser_mod:
@@ -1418,7 +1430,7 @@ custom_fields:
                       - position: relative
                     name:
                       - font-size: 18px
-                      - font-weight: "800"
+                      - font-weight: '800'
                       - color: white
                       - justify-self: center
                       - align-self: center
@@ -1482,22 +1494,22 @@ custom_fields:
       show_state: false
       styles:
         card:
-          - width: "[[[ return variables.HIT_SIZE + 'px'; ]]]"
-          - height: "[[[ return variables.HIT_SIZE + 'px'; ]]]"
+          - width: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
+          - height: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
           - z-index: 50
           - pointer-events: auto
           - border-radius: 999px
           - box-shadow: none
           - border: none
-          - padding: "0"
-          - margin: "0"
+          - padding: '0'
+          - margin: '0'
           - background: >
               [[[ return variables.DEBUG_HIT ? "rgba(255,0,0,0.55)" :
               "transparent"; ]]]
           - opacity: |
               [[[ return variables.DEBUG_HIT ? 1 : 0.001; ]]]
-          - "--mdc-ripple-color": transparent
-          - "--mdc-ripple-press-opacity": "0"
+          - --mdc-ripple-color: transparent
+          - --mdc-ripple-press-opacity: '0'
       tap_action:
         action: fire-dom-event
         browser_mod:
@@ -1626,7 +1638,7 @@ custom_fields:
                       - position: relative
                     name:
                       - font-size: 18px
-                      - font-weight: "800"
+                      - font-weight: '800'
                       - color: white
                       - justify-self: center
                       - align-self: center
@@ -1694,22 +1706,22 @@ custom_fields:
       show_state: false
       styles:
         card:
-          - width: "[[[ return variables.HIT_SIZE + 'px'; ]]]"
-          - height: "[[[ return variables.HIT_SIZE + 'px'; ]]]"
+          - width: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
+          - height: '[[[ return variables.HIT_SIZE + ''px''; ]]]'
           - z-index: 50
           - pointer-events: auto
           - border-radius: 999px
           - box-shadow: none
           - border: none
-          - padding: "0"
-          - margin: "0"
+          - padding: '0'
+          - margin: '0'
           - background: >
               [[[ return variables.DEBUG_HIT ? "rgba(255,0,0,0.55)" :
               "transparent"; ]]]
           - opacity: |
               [[[ return variables.DEBUG_HIT ? 1 : 0.001; ]]]
-          - "--mdc-ripple-color": transparent
-          - "--mdc-ripple-press-opacity": "0"
+          - --mdc-ripple-color: transparent
+          - --mdc-ripple-press-opacity: '0'
       tap_action:
         action: fire-dom-event
         browser_mod:
@@ -1838,7 +1850,7 @@ custom_fields:
                       - position: relative
                     name:
                       - font-size: 18px
-                      - font-weight: "800"
+                      - font-weight: '800'
                       - color: white
                       - justify-self: center
                       - align-self: center
@@ -1855,12 +1867,10 @@ custom_fields:
                       name: Home Power (TS Aware)
                     - entity: sensor.shellyem_c4d8d500468f_channel_1_voltage
                       name: Home Voltage
-                    - entity: sensor.semmeter_80b54ee3f0a6_main_circuit_l1_power
+                    - entity: sensor.sem_meter_main_phase_a_power
                       name: Home Line 1 Power
-                    - entity: sensor.semmeter_80b54ee3f0a6_main_circuit_l2_power
+                    - entity: sensor.sem_meter_main_phase_b_power
                       name: Home Line 2 Power
-                    - entity: sensor.semmeter_80b54ee3f0a6_main_circuit_current
-                      name: Home Current
                     - entity: sensor.energy_source_mode
                       name: Supply Mode
           uix:
@@ -1904,22 +1914,22 @@ custom_fields:
       show_state: false
       styles:
         card:
-          - width: "[[[ return variables.DC_HIT_SIZE + 'px'; ]]]"
-          - height: "[[[ return variables.DC_HIT_SIZE + 'px'; ]]]"
+          - width: '[[[ return variables.DC_HIT_SIZE + ''px''; ]]]'
+          - height: '[[[ return variables.DC_HIT_SIZE + ''px''; ]]]'
           - z-index: 50
           - pointer-events: auto
           - border-radius: 999px
           - box-shadow: none
           - border: none
-          - padding: "0"
-          - margin: "0"
+          - padding: '0'
+          - margin: '0'
           - background: >
               [[[ return variables.DEBUG_HIT ? "rgba(255,0,0,0.55)" :
               "transparent"; ]]]
           - opacity: |
               [[[ return variables.DEBUG_HIT ? 1 : 0.001; ]]]
-          - "--mdc-ripple-color": transparent
-          - "--mdc-ripple-press-opacity": "0"
+          - --mdc-ripple-color: transparent
+          - --mdc-ripple-press-opacity: '0'
       tap_action:
         action: fire-dom-event
         browser_mod:
@@ -2048,7 +2058,7 @@ custom_fields:
                       - position: relative
                     name:
                       - font-size: 18px
-                      - font-weight: "800"
+                      - font-weight: '800'
                       - color: white
                       - justify-self: center
                       - align-self: center
@@ -2132,22 +2142,22 @@ custom_fields:
       show_state: false
       styles:
         card:
-          - width: "[[[ return variables.DC_HIT_SIZE + 'px'; ]]]"
-          - height: "[[[ return variables.DC_HIT_SIZE + 'px'; ]]]"
+          - width: '[[[ return variables.DC_HIT_SIZE + ''px''; ]]]'
+          - height: '[[[ return variables.DC_HIT_SIZE + ''px''; ]]]'
           - z-index: 50
           - pointer-events: auto
           - border-radius: 999px
           - box-shadow: none
           - border: none
-          - padding: "0"
-          - margin: "0"
+          - padding: '0'
+          - margin: '0'
           - background: >
               [[[ return variables.DEBUG_HIT ? "rgba(255,0,0,0.55)" :
               "transparent"; ]]]
           - opacity: |
               [[[ return variables.DEBUG_HIT ? 1 : 0.001; ]]]
-          - "--mdc-ripple-color": transparent
-          - "--mdc-ripple-press-opacity": "0"
+          - --mdc-ripple-color: transparent
+          - --mdc-ripple-press-opacity: '0'
       tap_action:
         action: fire-dom-event
         browser_mod:
@@ -2276,7 +2286,7 @@ custom_fields:
                       - position: relative
                     name:
                       - font-size: 18px
-                      - font-weight: "800"
+                      - font-weight: '800'
                       - color: white
                       - justify-self: center
                       - align-self: center
