@@ -43,8 +43,7 @@ Fully compatible with:
 - ✅ Enforce Zero Export (A089 = 0)
 - ✅ Disable Grid Feed-in (A088)
 
-<video src="https://github.com/user-attachments/assets/bb0fdfad-1e38-4078-8709-a46a686926f1" controls muted playsinline width="600"></video>
-
+<video src="https://github.com/user-attachments/assets/39ecf741-7695-437f-b103-186df7d85876" controls muted playsinline width="600"></video>
 
 
 
